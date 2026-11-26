@@ -24,7 +24,7 @@ const ink = (t, hex) => (lightTheme(t) && /^#[0-9a-f]{6}$/i.test(hex)
 function bevel(w, h, r, bottom, t) {
   // White light: faint over dark glass, where the title is light too; strong over light glass.
   const glint = "#ffffff";
-  const strength = lightTheme(t) ? "99" : "20";
+  const strength = lightTheme(t) ? "99" : "14";
   const b = PathBuilder.fill();
   const path = bottom
     ? b.move_to(0, 0).line_to(w, 0).line_to(w, h - r).arc_to(r, r, 0, false, true, w - r, h).line_to(r, h).arc_to(r, r, 0, false, true, 0, h - r).close()

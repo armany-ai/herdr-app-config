@@ -69,7 +69,7 @@
       "max": 480,
       "background": {
         "gradient": [
-          "#ffffff26",
+          "#3d414940",
           "#2227304d"
         ],
         "angle": 160
@@ -117,7 +117,7 @@
                   },
                   "background": {
                     "gradient": [
-                      "#ffffff1c",
+                      "#43485366",
                       "#2e344082"
                     ],
                     "angle": 160

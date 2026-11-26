@@ -42,7 +42,9 @@ BASE_BG = (0x11, 0x11, 0x1B)  # the layout's navy canvas, used when Kvantum isn'
 KVANTUM = os.path.join(HOME, ".config/Kvantum")
 # Dark look (a dark Kvantum theme): Kvantum's own color and translucency, as Qt windows show them.
 GLOW_DARK = 0.22             # accent in the window's warm corner
-SHEEN_DARK = ("#ffffff1c", "#ffffff26")  # see-through light on a pane's / the sidebar's top-left corner
+# The light on a pane's / the sidebar's top-left corner: the tint itself, a little lighter and
+# thinner. Pure white there fogs the whole card to a milky gray.
+SHEEN_DARK = ((0.10, "66"), (0.12, "40"))  # (white mixed into the tint, alpha)
 RIM_PANE_DARK = "#ffffff30"  # the edge of light around an unfocused pane
 RIM_ALPHA_DARK = "40"        # and around the sidebar, where it leans to the accent
 # Panel colors the layout overrides, per appearance. The light set is longer: it also has
@@ -320,6 +322,10 @@ def main():
     def al(alpha):  # a tuned two-digit hex alpha, thinner or denser by f
         return f"{max(0, min(255, round(int(alpha, 16) * f))):02x}"
 
+    def sheen(tint, i):  # the dark look's corner light: the tint, lighter and thinner
+        amount, alpha = SHEEN_DARK[i]
+        return hexc(mix(tint, white, amount), al(alpha))
+
     if kv and light:
         clarity = WINDOW_CLARITY_LIGHT
         a = f"{round(win * clarity * 255):02x}"
@@ -352,7 +358,7 @@ def main():
             "gradient": [hexc(mix(kv_rgb, rgb, GLOW_DARK), a), hexc(kv_rgb, a)],
             "canvas": hexc(dark, al("4d")), "background": hexc(kv_rgb, al("4d")),
             "chrome": hexc(dark, al("4d")),
-            "pane": [SHEEN_DARK[0], hexc(kv_rgb, al("82"))], "sidebar": [SHEEN_DARK[1], hexc(dark, al("4d"))],
+            "pane": [sheen(kv_rgb, 0), hexc(kv_rgb, al("82"))], "sidebar": [sheen(dark, 1), hexc(dark, al("4d"))],
             "rim": hexc(mix(rgb, white, 0.6), RIM_ALPHA_DARK), "rim_pane": RIM_PANE_DARK,
             "ui": UI_DARK,
         }
@@ -361,7 +367,8 @@ def main():
         bg = {"gradient": [hexc(mix(BASE_BG, rgb, 0.22), al("a0")), "#11111b" + al("4d")],
               "canvas": "#11111b" + al("4d"), "background": "#1e1e2e" + al("4d"),
               "chrome": "#181825" + al("4d"),
-              "pane": [SHEEN_DARK[0], "#1e1e2e" + al("82")], "sidebar": [SHEEN_DARK[1], "#181825" + al("4d")],
+              "pane": [sheen((0x1e, 0x1e, 0x2e), 0), "#1e1e2e" + al("82")],
+              "sidebar": [sheen((0x18, 0x18, 0x25), 1), "#181825" + al("4d")],
               "rim": hexc(mix(rgb, white, 0.6), RIM_ALPHA_DARK), "rim_pane": RIM_PANE_DARK,
               "ui": UI_DARK}
         bgtxt = "background navy (Kvantum not in use)"
