@@ -1,6 +1,7 @@
 {
   "id": "root",
   "type": "row",
+  "preview": "layouts/pixel-hq.svg",
   "theme": "pixel-hq",
   "toast": "company-toast",
   "children": [
@@ -75,7 +76,7 @@
       },
       "border": {
         "width": 1,
-        "color": "#f1b5c040"
+        "color": "#fcae9b40"
       },
       "radius": 20,
       "resizable": false
@@ -127,7 +128,7 @@
                   },
                   "focus": {
                     "width": 1,
-                    "color": "#db4661"
+                    "color": "#f73505"
                   },
                   "radius": 20,
                   "gap": 8,
@@ -189,14 +190,14 @@
   ],
   "background": {
     "gradient": [
-      "#54384799",
+      "#5a343399",
       "#2e344099"
     ],
     "angle": 160
   },
   "padding": 8,
   "colors": {
-    "accent": "#db4661",
+    "accent": "#f73505",
     "chrome": "#2227304d",
     "canvas": "#2227304d",
     "background": "#2e34404d",
