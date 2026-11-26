@@ -7,16 +7,30 @@ const ACC = (t) => (/^#[0-9a-f]{6}/i.test(t.accent ?? "") ? t.accent.slice(0, 7)
 const LIGHT = (hex) => "#" + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.55 + 255 * 0.45).toString(16).padStart(2, "0")).join("");
 
 const MONO = "JetBrains Mono";
+// Pastel status colors are tuned for dark glass. Under a light theme (dark text) they darken
+// so labels stay readable; lightTheme() is how a mod tells which look is showing.
+const lightTheme = (t) => {
+  const f = t?.foreground ?? "";
+  if (!/^#[0-9a-f]{6}/i.test(f)) return false;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(f.slice(i, i + 2), 16));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
+};
+const ink = (t, hex) => (lightTheme(t) && /^#[0-9a-f]{6}$/i.test(hex)
+  ? "#" + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.55).toString(16).padStart(2, "0")).join("")
+  : hex);
 
 // Glass bevel: the header's shape (rounded on the card's outer edge), filled with light that
 // falls off toward the terminal. Needs the header's width, so it shows after the first layout.
-function bevel(w, h, r, bottom) {
+function bevel(w, h, r, bottom, t) {
+  // White light: faint over dark glass, where the title is light too; strong over light glass.
+  const glint = "#ffffff";
+  const strength = lightTheme(t) ? "99" : "20";
   const b = PathBuilder.fill();
   const path = bottom
     ? b.move_to(0, 0).line_to(w, 0).line_to(w, h - r).arc_to(r, r, 0, false, true, w - r, h).line_to(r, h).arc_to(r, r, 0, false, true, 0, h - r).close()
     : b.move_to(0, h).line_to(0, r).arc_to(r, r, 0, false, true, r, 0).line_to(w - r, 0).arc_to(r, r, 0, false, true, w, r).line_to(w, h).close();
   return globalThis.window.paint_path(path.build(),
-    Background.linear_gradient(bottom ? 0 : 180, Background.stop("#e6f2ff40", 0), Background.stop("#e6f2ff00", 100)))
+    Background.linear_gradient(bottom ? 0 : 180, Background.stop(glint + strength, 0), Background.stop(glint + "00", 100)))
     .absolute().inset_0();
 }
 
@@ -133,7 +147,7 @@ export default class CompanyPane extends View {
           .font_family(MONO).font_bold().text_size(11).text_color(t.muted).child(">_");
     const custom = (shared("pixel-hq.names") ?? {})[pane] ?? {};
     const title = custom.name ?? ((((p.program?.agent || p.program?.shell) && p.program.name) || p.title || p.program?.name) || "shell");
-    const chip = (text, color, iconEl) => h_flex().flex_none().gap(5).px(7).h(20).items_center().relative()
+    const chip = (text, pastel, iconEl, color = ink(t, pastel)) => h_flex().flex_none().gap(5).px(7).h(20).items_center().relative()
       .children(notch(color + "22", [0, 0, 0, 0]))
       .child(div().absolute().left(1).right(1).top(0).h(1).bg(color + "66"))
       .child(div().absolute().left(1).right(1).bottom(0).h(1).bg(color + "66"))
@@ -164,7 +178,7 @@ export default class CompanyPane extends View {
         const w = Math.round(size.width / (settings()?.zoom || 1));
         if (w !== this.w) { this.w = w; cx.notify(); }
       })
-      .when(Boolean(this.w), el => el.child(bevel(this.w, frame?.header?.height ?? 40, innerR, bottom)))
+      .when(Boolean(this.w), el => el.child(bevel(this.w, frame?.header?.height ?? 40, innerR, bottom, t)))
       .when(bottom, el => el.rounded_b(innerR))
       .when(!bottom, el => el.rounded_t(innerR))
       .when(bottom, el => el.border_t(1))
@@ -182,7 +196,7 @@ export default class CompanyPane extends View {
           .child(div().absolute().left(1).right(1).bottom(0).h(1).bg(ACC(t) + "66"))
           .child(div().absolute().left(0).top(1).bottom(1).w(1).bg(ACC(t) + "66"))
           .child(div().absolute().right(0).top(1).bottom(1).w(1).bg(ACC(t) + "66"))
-          .font_family(MONO).font_bold().text_size(9.5).text_color(LIGHT(ACC(t)))
+          .font_family(MONO).font_bold().text_size(9.5).text_color(lightTheme(t) ? ink(t, ACC(t)) : LIGHT(ACC(t)))
           .child((custom.role ?? ROLE(p)).toUpperCase()), 120)))
       .child(div().flex_1().truncate().font_family(MONO).text_size(11).text_color(t.muted).child(folder(p.cwd)))
       .when(Boolean(status), el => el.child(status))

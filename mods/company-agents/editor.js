@@ -12,6 +12,17 @@ import {
 } from "./figures.js";
 import { PLAYS, svgToWebp } from "./animate.js";
 import { agentTaskArgv } from "./crew.js";
+// This mod is a dark room whatever the theme shows: under a light theme (dark text) it keeps
+// the dark look's text and panel colors, so its fixed dark boxes and pixel art stay readable.
+const darkRoom = (t) => {
+  const f = t?.foreground ?? "";
+  if (!/^#[0-9a-f]{6}/i.test(f)) return t;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(f.slice(i, i + 2), 16));
+  if (0.2126 * r + 0.7152 * g + 0.0722 * b >= 128) return t;
+  return { ...t, foreground: "#eceff4", muted: "#d8dee9", dim: "#7f849c", chrome: "#1b2130d9", canvas: "#1b2130d9",
+    surface: "#262637", raised: "#313244", popover: "#2e3440", border: "#ffffff14", hover: "#ffffff10", selected: "#ffffff14",
+    working: "#81a1c1", blocked: "#ebcb8b", done: "#a3be8c", idle: "#616e88" };
+};
 
 const ICON = (n) => (n.includes("/") ? n : `mods/company-agents/${n}.svg`);
 const SPEEDS = [{ ms: 800, label: "Slow" }, { ms: 400, label: "Normal" }, { ms: 180, label: "Fast" }];
@@ -445,7 +456,7 @@ export class Editor {
   }
 
   render(cx) {
-    const t = theme();
+    const t = darkRoom(theme());
     const c = config();
     if (!allSets(c)[this.setId]) this.setId = setIdFor(null, c);
     const tab = (id, label) => div().id(`tab-${id}`).h(30).px(12).flex().items_center().rounded(7).text_size(12.5).cursor_pointer()

@@ -68,14 +68,14 @@
       "max": 480,
       "background": {
         "gradient": [
-          "#6c7f938c",
-          "#2e445c8c"
+          "#ffffff26",
+          "#2227304d"
         ],
         "angle": 160
       },
       "border": {
         "width": 1,
-        "color": "#f6b0bf80"
+        "color": "#f6b0bf40"
       },
       "radius": 20,
       "resizable": false
@@ -116,14 +116,14 @@
                   },
                   "background": {
                     "gradient": [
-                      "#65788da0",
-                      "#2e445ca0"
+                      "#ffffff1c",
+                      "#2e344082"
                     ],
                     "angle": 160
                   },
                   "border": {
                     "width": 1,
-                    "color": "#e6f2ff73"
+                    "color": "#ffffff30"
                   },
                   "focus": {
                     "width": 1,
@@ -189,17 +189,17 @@
   ],
   "background": {
     "gradient": [
-      "#4e57773d",
-      "#3d5a7a3d"
+      "#57354799",
+      "#2e344099"
     ],
     "angle": 160
   },
   "padding": 8,
   "colors": {
     "accent": "#e8395e",
-    "chrome": "#2e445c4d",
-    "canvas": "#2e445c4d",
-    "background": "#3d5a7a4d",
+    "chrome": "#2227304d",
+    "canvas": "#2227304d",
+    "background": "#2e34404d",
     "surface": "#262637",
     "raised": "#313244",
     "border": "#ffffff14",

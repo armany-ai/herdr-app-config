@@ -1,6 +1,17 @@
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { spaces, panes, focused, agents, theme, run, window, keys, setBadge, openOverlay, shared, setShared, appHome, exec, checking, settings, readTextFile, writeTextFile } from "herdr";
+// Pastel status colors are tuned for dark glass. Under a light theme (dark text) they darken
+// so labels stay readable; lightTheme() is how a mod tells which look is showing.
+const lightTheme = (t) => {
+  const f = t?.foreground ?? "";
+  if (!/^#[0-9a-f]{6}/i.test(f)) return false;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(f.slice(i, i + 2), 16));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
+};
+const ink = (t, hex) => (lightTheme(t) && /^#[0-9a-f]{6}$/i.test(hex)
+  ? "#" + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.55).toString(16).padStart(2, "0")).join("")
+  : hex);
 
 const MONO = "JetBrains Mono, Menlo, monospace";
 
@@ -212,7 +223,7 @@ export default class WorkspaceStatus extends View {
     const label = (icon, text) => h_flex().gap(6).items_center().child(svg(`mods/company-status/${icon}.svg`).size(13)).child(text.toUpperCase());
     const pill = (color, text) => h_flex().gap(6).items_center().child(div().size(6).bg(color)).child(text.toUpperCase());
     return h_flex().size_full().px(8).gap(14).items_center().font_family(MONO).text_size(11).text_color(t.muted)
-      .child(div().font_bold().text_size(11).text_color("#b4befe").child("PIXEL HQ"))
+      .child(div().font_bold().text_size(11).text_color(ink(t, "#b4befe")).child("PIXEL HQ"))
       .child(label(space?.machine ? "server" : "monitor", space?.machine ?? "This computer"))
       .when(Boolean(currentBranch), el => el.child(label("branch", currentBranch)))
       .child(div().text_color(t.dim).child(`${list.length} ON THE TEAM`))

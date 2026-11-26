@@ -46,6 +46,17 @@ const FALLBACK = 60000;
 const MARK = { ansi6: "#22a99a", ansi3: "#e3814f", ansi4: "#5b8def", ansi5: "#8b7cf6", ansi2: "#3fae6a", ansi1: "#d9649a" };
 
 const MONO = "JetBrains Mono";
+// Pastel status colors are tuned for dark glass. Under a light theme (dark text) they darken
+// so labels stay readable; lightTheme() is how a mod tells which look is showing.
+const lightTheme = (t) => {
+  const f = t?.foreground ?? "";
+  if (!/^#[0-9a-f]{6}/i.test(f)) return false;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(f.slice(i, i + 2), 16));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
+};
+const ink = (t, hex) => (lightTheme(t) && /^#[0-9a-f]{6}$/i.test(hex)
+  ? "#" + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.55).toString(16).padStart(2, "0")).join("")
+  : hex);
 // A strong space color toned toward the layout's pale lavender, so frames and bars sit in the same soft palette.
 const soften = (c, k = 0.3) => {
   if (!/^#[0-9a-f]{6}$/i.test(c)) return c;
@@ -397,7 +408,7 @@ export default class Spaces extends View {
       const head = h_flex().relative().id(`machine-${m ?? "local"}`).h(collapsed ? 26 : 28).flex_none().px(collapsed ? 0 : 8).gap(7).items_center().text_size(11).text_color(t.dim)
         .when(collapsed, el => el.mt(4).w(RAIL_CELL).justify_center().tooltip(login ? `${m} needs a login: run ${login}. Click for Copy.` : m ? `${m} · ${connected ? "connected" : (machine?.state ?? "asleep").replace(/_/g, " ")}` : "This computer"))
         .when(collapsed, el => el.cursor_pointer())
-        .when(!collapsed, el => el.bg("#181825").mb(2).h(30).child(div().absolute().left(0).right(0).bottom(0).h(2).bg(line)))
+        .when(!collapsed, el => el.bg(lightTheme(t) ? t.raised : "#181825").mb(2).h(30).child(div().absolute().left(0).right(0).bottom(0).h(2).bg(line)))
         .hover(s => s.bg(t.hover))
         .on_click((_e, cx) => {
           if (renaming) return;
@@ -579,7 +590,8 @@ export default class Spaces extends View {
     const done = count("done");
     const idle = crew.length - blocked - working - done;
     const dot = blocked > 0 ? "#f38ba8" : working > 0 ? "#89b4fa" : null;
-    const chip = (text, color, pulse) => {
+    const chip = (text, pastel, pulse) => {
+      const color = ink(t, pastel);
       const c = h_flex().flex_none().px(5).h(15).items_center().border_1().border_color(color + "77").bg(color + "26")
         .font_family(MONO).font_bold().text_size(9.5).text_color(color).child(text);
       return pulse ? c.loop("opacity", { from: 0.55, to: 1, period: 900, easing: "ease-in-out" }) : c;
@@ -591,7 +603,7 @@ export default class Spaces extends View {
       ...(done > 0 ? [chip(`${done} shipped`, "#a6e3a1")] : []),
       ...(idle > 0 ? [chip(`${idle} break`, "#9399b2")] : []),
     ];
-    const glyph = div().relative().w(8).h(10).flex_none().children([[0, 0, 2, 2], [0, 8, 2, 2], [5, 2, 2, 2], [0, 2, 1, 6], [1, 4, 5, 1]].map(([x, y, w2, h2]) => div().absolute().left(x).top(y).w(w2).h(h2).bg("#89b4fa")));
+    const glyph = div().relative().w(8).h(10).flex_none().children([[0, 0, 2, 2], [0, 8, 2, 2], [5, 2, 2, 2], [0, 2, 1, 6], [1, 4, 5, 1]].map(([x, y, w2, h2]) => div().absolute().left(x).top(y).w(w2).h(h2).bg(ink(t, "#89b4fa"))));
     return h_flex().size_full().gap(11).items_center().px(4)
       .child(tile)
       .child(v_flex().flex_1().min_w(0).gap(3)
@@ -604,7 +616,7 @@ export default class Spaces extends View {
         .child(h_flex().gap(5).items_center().text_size(10.5).font_family(MONO).text_color(t.dim)
           .when(Boolean(branchLabel), (el) => el
             .child(glyph)
-            .child(div().min_w(0).truncate().text_color("#89b4fa").child(branchLabel))
+            .child(div().min_w(0).truncate().text_color(ink(t, "#89b4fa")).child(branchLabel))
             .child(div().flex_none().child("·"))
           )
           .child(div().flex_none().child(crew.length ? `${crew.length} aboard` : "no service"))
