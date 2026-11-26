@@ -1,0 +1,29 @@
+{
+  "zoom": 1,
+  "sounds": {
+    "enabled": true
+  },
+  "font_ligatures": false,
+  "minimum_contrast": 1,
+  "theme": "legacy-nord",
+  "colors": {
+    "chrome": "#252b36",
+    "canvas": "#2e3440",
+    "surface": "#3b4252",
+    "raised": "#434c5e",
+    "popover": "#2e3440",
+    "hover": "#434c5e",
+    "selected": "#434c5e",
+    "selection": "#4c566a",
+    "border": "#616e88",
+    "input": "#6b778d",
+    "foreground": "#eceff4",
+    "muted": "#d8dee9",
+    "dim": "#6b778d",
+    "accent": "#88c0d0",
+    "working": "#81a1c1",
+    "blocked": "#ebcb8b",
+    "done": "#a3be8c",
+    "idle": "#616e88"
+  }
+}

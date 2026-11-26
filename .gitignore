@@ -1,0 +1,25 @@
+# Written by Herdr or regenerated on every start
+herdr-app.sock
+AGENTS.md
+*.d.ts
+frame/
+icons/
+data/
+telemetry/
+view.json
+shared.json
+seen.json
+installed.json
+window.json
+windows.json
+update-notes.json
+update-notes-cache.md
+update-notes-media/
+layouts/.state/
+*.error
+*.reset-*
+# Manual backups and scratch
+backup-*/
+*.before-*
+__pycache__/
+node_modules/
