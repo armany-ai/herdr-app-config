@@ -1,0 +1,10 @@
+{
+  "place": "none",
+  "title": "Look",
+  "overlay": {
+    "kind": "popup",
+    "frame": "none",
+    "width": 280,
+    "height": 204
+  }
+}

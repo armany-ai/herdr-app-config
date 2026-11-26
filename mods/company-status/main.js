@@ -421,6 +421,13 @@ export default class WorkspaceStatus extends View {
       )
       .child(
         chip(h_flex(), t)
+          .id("btn-look")
+          .tooltip("Appearance and transparency")
+          .on_click(() => openOverlay({ mod: "company-look", kind: "popup", frame: "none", width: 280, height: 204 }))
+          .child("LOOK")
+      )
+      .child(
+        chip(h_flex(), t)
           .id("btn-hotkeys")
           .tooltip("Configure Hotkeys")
           .on_click(() => run("mod.open", { name: "company-hotkeys" }))

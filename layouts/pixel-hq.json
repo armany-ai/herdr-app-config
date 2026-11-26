@@ -75,7 +75,7 @@
       },
       "border": {
         "width": 1,
-        "color": "#f6b0bf40"
+        "color": "#f1b5c040"
       },
       "radius": 20,
       "resizable": false
@@ -127,7 +127,7 @@
                   },
                   "focus": {
                     "width": 1,
-                    "color": "#e8395e"
+                    "color": "#db4661"
                   },
                   "radius": 20,
                   "gap": 8,
@@ -189,14 +189,14 @@
   ],
   "background": {
     "gradient": [
-      "#57354799",
+      "#54384799",
       "#2e344099"
     ],
     "angle": 160
   },
   "padding": 8,
   "colors": {
-    "accent": "#e8395e",
+    "accent": "#db4661",
     "chrome": "#2227304d",
     "canvas": "#2227304d",
     "background": "#2e34404d",

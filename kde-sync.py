@@ -13,6 +13,10 @@ and the layout's theme set to pixel-hq-light (dark text); a dark one sets pixel-
 The company-pane badges, the company-spaces train line and the company-agents
 office read colors.accent; company-brand and company-pane follow the radius.
 
+The status bar's Look popover (mods/company-look) can override two things, kept in
+pixel-hq-look.json: the appearance (dark or light instead of following Kvantum) and
+how see-through the window is.
+
 Only acts in a KDE Plasma session (see plasma_session); anywhere else it exits
 without touching anything. Blue stays for activity ("typing"). Files are only
 written when a value changes.
@@ -30,6 +34,10 @@ LAYOUTS = [os.path.join(APP, f"layouts/{n}.json") for n in ("pixel-hq-glass", "p
 # The terminal themes: the dark one, and the light one shown under a light Kvantum theme.
 THEME_DARK, THEME_LIGHT = "pixel-hq", "pixel-hq-light"
 THEMES = [os.path.join(APP, f"themes/{n}.json") for n in (THEME_DARK, THEME_LIGHT)]
+# What the person picks in the status bar's Look popover (mods/company-look writes it):
+# {"mode": "system" | "dark" | "light", "transparency": 0..95 or null}
+LOOK = os.path.join(APP, "pixel-hq-look.json")
+INK, PAPER = (0x2e, 0x34, 0x40), (0xec, 0xef, 0xf4)  # stand-ins when a theme has no usable color
 BASE_BG = (0x11, 0x11, 0x1B)  # the layout's navy canvas, used when Kvantum isn't the widget style
 KVANTUM = os.path.join(HOME, ".config/Kvantum")
 # Dark look (a dark Kvantum theme): Kvantum's own color and translucency, as Qt windows show them.
@@ -78,6 +86,21 @@ def plasma_session():
     if os.path.exists(KDEGLOBALS):
         return True, "kdeglobals"
     return False, "no KDE Plasma session"
+
+
+def look_prefs():
+    """(mode, transparency): mode is "system" (follow Kvantum), "dark" or "light";
+    transparency is how see-through the window is, 0..95 percent, or None for Kvantum's own."""
+    try:
+        d = json.load(open(LOOK, encoding="utf-8"))
+    except (OSError, ValueError):
+        d = {}
+    if not isinstance(d, dict):
+        d = {}
+    mode = d.get("mode") if d.get("mode") in ("dark", "light") else "system"
+    t = d.get("transparency")
+    t = max(0.0, min(95.0, float(t))) if isinstance(t, (int, float)) and not isinstance(t, bool) else None
+    return mode, t
 
 
 def kde_accent():
@@ -271,6 +294,7 @@ def main():
     acc = hexc(rgb)
 
     radius, source = window_radius()
+    mode, transparency = look_prefs()
     kv = kvantum_background()
     white = (255, 255, 255)
     light = False
@@ -278,47 +302,66 @@ def main():
         kv_rgb, kv_alpha, kv_theme, kv_text = kv
         # A light Kvantum theme makes Pixel HQ light too: light cards, the light terminal theme.
         light = luminance(kv_rgb) > 0.2
+    if mode != "system" and (mode == "light") != light:
+        # The person chose the other appearance. A theme's text color is, near enough, the
+        # window color of its opposite (Utterly-Nord and Utterly-Nord-Light swap the two).
+        light = mode == "light"
+        if kv:
+            fits = kv_text and (luminance(kv_text) > 0.2) == light
+            kv_rgb, kv_text = (kv_text if fits else (PAPER if light else INK)), kv_rgb
+        else:  # no Kvantum: light glass from the stand-ins; dark keeps the navy look below
+            kv = True
+            kv_rgb, kv_alpha, kv_theme, kv_text = PAPER, 0.6, "none", INK
+    # Transparency: the window's opacity, and every tint scaled with it (f = 1 keeps the tuned look).
+    ref = kv_alpha if kv else 0xa0 / 255
+    win = ref if transparency is None else 1 - transparency / 100
+    f = win / ref if ref else 1.0
+
+    def al(alpha):  # a tuned two-digit hex alpha, thinner or denser by f
+        return f"{max(0, min(255, round(int(alpha, 16) * f))):02x}"
+
     if kv and light:
         clarity = WINDOW_CLARITY_LIGHT
-        a = f"{round(kv_alpha * clarity * 255):02x}"
+        a = f"{round(win * clarity * 255):02x}"
         kv_rgb = mix(kv_rgb, ICE, COOL)
         card = mix(kv_rgb, white, 0.35)  # the cards: lighter and denser than the window
         ink = kv_text if kv_text and luminance(kv_text) < 0.2 else (0x2e, 0x34, 0x40)
         paper = mix(kv_rgb, white, 0.55)
         bg = {
             "gradient": [hexc(mix(kv_rgb, rgb, GLOW_LIGHT), a), hexc(kv_rgb, a)],
-            "canvas": hexc(card, "4d"), "background": hexc(kv_rgb, "4d"),
-            "chrome": hexc(card, "4d"),
+            "canvas": hexc(card, al("4d")), "background": hexc(kv_rgb, al("4d")),
+            "chrome": hexc(card, al("4d")),
             # the sheen lightens the tint without thinning it, so the wallpaper stays behind the text
-            "pane": [hexc(mix(card, white, SHEEN_PANE), PANE_ALPHA), hexc(card, PANE_ALPHA)],
-            "sidebar": [hexc(mix(card, white, SHEEN_SIDEBAR), SIDEBAR_ALPHA), hexc(card, SIDEBAR_ALPHA)],
+            "pane": [hexc(mix(card, white, SHEEN_PANE), al(PANE_ALPHA)), hexc(card, al(PANE_ALPHA))],
+            "sidebar": [hexc(mix(card, white, SHEEN_SIDEBAR), al(SIDEBAR_ALPHA)), hexc(card, al(SIDEBAR_ALPHA))],
             "rim": hexc(mix(rgb, white, 0.6), RIM_ALPHA_LIGHT), "rim_pane": RIM_PANE_LIGHT,
             # the status bar's dark text sits on the clear window: give it a strip of light glass
-            "bar": hexc(card, "99"),
+            "bar": hexc(card, al("99")),
             "ui": dict(UI_LIGHT, surface=hexc(paper), raised=hexc(mix(kv_rgb, (0, 0, 0), 0.06)),
                        popover=hexc(mix(kv_rgb, white, 0.75)),
                        selection=hexc(mix(kv_rgb, (0, 0, 0), 0.18)),
                        foreground=hexc(ink), muted=hexc(mix(ink, paper, 0.25)),
                        dim=hexc(mix(ink, paper, 0.48)), idle=hexc(mix(ink, paper, 0.55))),
         }
-        bgtxt = f"background Kvantum {kv_theme} (light) cooled to {hexc(kv_rgb)} at {round(kv_alpha * clarity * 100)}%"
+        bgtxt = f"background Kvantum {kv_theme} (light) cooled to {hexc(kv_rgb)} at {round(win * clarity * 100)}%"
     elif kv:
-        a = f"{round(kv_alpha * 255):02x}"
+        a = f"{round(win * 255):02x}"
         dark = mix(kv_rgb, (0, 0, 0), 0.25)
         bg = {
             # the window: Kvantum's color and translucency, accent glow in the corner
             "gradient": [hexc(mix(kv_rgb, rgb, GLOW_DARK), a), hexc(kv_rgb, a)],
-            "canvas": hexc(dark, "4d"), "background": hexc(kv_rgb, "4d"),
-            "chrome": hexc(dark, "4d"),
-            "pane": [SHEEN_DARK[0], hexc(kv_rgb, "82")], "sidebar": [SHEEN_DARK[1], hexc(dark, "4d")],
+            "canvas": hexc(dark, al("4d")), "background": hexc(kv_rgb, al("4d")),
+            "chrome": hexc(dark, al("4d")),
+            "pane": [SHEEN_DARK[0], hexc(kv_rgb, al("82"))], "sidebar": [SHEEN_DARK[1], hexc(dark, al("4d"))],
             "rim": hexc(mix(rgb, white, 0.6), RIM_ALPHA_DARK), "rim_pane": RIM_PANE_DARK,
             "ui": UI_DARK,
         }
-        bgtxt = f"background Kvantum {kv_theme} (dark) {hexc(kv_rgb)} at {round(kv_alpha * 100)}%"
+        bgtxt = f"background Kvantum {kv_theme} (dark) {hexc(kv_rgb)} at {round(win * 100)}%"
     else:
-        bg = {"gradient": [hexc(mix(BASE_BG, rgb, 0.22), "a0"), "#11111b4d"],
-              "canvas": "#11111b4d", "background": "#1e1e2e4d",
-              "chrome": "#1818254d", "pane": [SHEEN_DARK[0], "#1e1e2e82"], "sidebar": [SHEEN_DARK[1], "#1818254d"],
+        bg = {"gradient": [hexc(mix(BASE_BG, rgb, 0.22), al("a0")), "#11111b" + al("4d")],
+              "canvas": "#11111b" + al("4d"), "background": "#1e1e2e" + al("4d"),
+              "chrome": "#181825" + al("4d"),
+              "pane": [SHEEN_DARK[0], "#1e1e2e" + al("82")], "sidebar": [SHEEN_DARK[1], "#181825" + al("4d")],
               "rim": hexc(mix(rgb, white, 0.6), RIM_ALPHA_DARK), "rim_pane": RIM_PANE_DARK,
               "ui": UI_DARK}
         bgtxt = "background navy (Kvantum not in use)"
@@ -343,6 +386,11 @@ def main():
 
     rtxt = f"radius {radius} ({source})" if radius is not None else f"radius unchanged ({source})"
     print(f"kde-sync: accent {acc}; {rtxt}; {bgtxt}; " + (f"updated {', '.join(os.path.relpath(p, APP) for p in changed)}" if changed else "no changes"))
+    # one line for the Look popover: what is showing, and what "system" would give
+    print("look: " + json.dumps({"mode": mode, "appearance": "light" if light else "dark",
+                                 "transparency": round(100 - win * 100), "auto": transparency is None,
+                                 "system_transparency": round(100 - ref * 100),
+                                 "kvantum": kv_theme if kv else None}))
     return 0
 
 
