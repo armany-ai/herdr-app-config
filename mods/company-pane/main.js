@@ -16,7 +16,7 @@ function bevel(w, h, r, bottom) {
     ? b.move_to(0, 0).line_to(w, 0).line_to(w, h - r).arc_to(r, r, 0, false, true, w - r, h).line_to(r, h).arc_to(r, r, 0, false, true, 0, h - r).close()
     : b.move_to(0, h).line_to(0, r).arc_to(r, r, 0, false, true, r, 0).line_to(w - r, 0).arc_to(r, r, 0, false, true, w, r).line_to(w, h).close();
   return globalThis.window.paint_path(path.build(),
-    Background.linear_gradient(bottom ? 0 : 180, Background.stop("#ffffff20", 0), Background.stop("#ffffff00", 100)))
+    Background.linear_gradient(bottom ? 0 : 180, Background.stop("#e6f2ff40", 0), Background.stop("#e6f2ff00", 100)))
     .absolute().inset_0();
 }
 

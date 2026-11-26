@@ -28,8 +28,19 @@ LAYOUTS = [os.path.join(APP, f"layouts/{n}.json") for n in ("pixel-hq-glass", "p
 THEME = os.path.join(APP, "themes/pixel-hq.json")
 BASE_BG = (0x11, 0x11, 0x1B)  # the layout's navy canvas, used when Kvantum isn't the widget style
 KVANTUM = os.path.join(HOME, ".config/Kvantum")
-SHEEN_PANE = "#ffffff1c"     # the light on a pane's top-left corner (white, ~11%)
-SHEEN_SIDEBAR = "#ffffff26"  # and on the sidebar's (~15%)
+SHEEN = (230, 242, 255)      # the light that falls on the cards: icy white
+SHEEN_PANE = 0.30            # how much of it lightens a pane's top-left corner
+SHEEN_SIDEBAR = 0.34         # and the sidebar's
+RIM_PANE = "#e6f2ff73"       # the edge of light around an unfocused pane (~45%)
+RIM_ALPHA = "80"             # and around the sidebar, where it leans to the accent (50%)
+# Crystal look (Kvantum branch): the window is clearer than Qt's windows and its
+# tint leans to ice blue; the cards are denser so they float over it and text stays readable.
+WINDOW_CLARITY = 0.4         # window opacity = Kvantum's x this (60% -> 24%); 1 matches Qt windows
+ICE = (90, 165, 235)         # the cool hue mixed into every tint
+COOL = 0.34                  # how much of it; 0 keeps Kvantum's own color
+GLOW = 0.10                  # accent in the window's warm corner (was 0.22)
+PANE_ALPHA = "a0"            # a pane's tint (63%, and the darker shade), up from 82 to make up for the clearer window
+SIDEBAR_ALPHA = "8c"         # the sidebar's (55%), up from 4d
 
 
 def plasma_session():
@@ -250,26 +261,29 @@ def main():
         light = luminance(kv_rgb) > 0.2
         if light:  # Pixel HQ's terminal text is light: keep the hue, not the brightness
             kv_rgb = darkened(kv_rgb)
-        a = f"{round(kv_alpha * 255):02x}"
+        a = f"{round(kv_alpha * WINDOW_CLARITY * 255):02x}"
+        kv_rgb = mix(kv_rgb, ICE, COOL)
         dark = mix(kv_rgb, (0, 0, 0), 0.25)
         bg = {
-            # the window: Kvantum's color and translucency, accent glow in the corner
-            "gradient": [hexc(mix(kv_rgb, rgb, 0.22), a), hexc(kv_rgb, a)],
+            # the window: Kvantum's color cooled and cleared, a little accent glow in the corner
+            "gradient": [hexc(mix(kv_rgb, rgb, GLOW), a), hexc(kv_rgb, a)],
             "canvas": hexc(dark, "4d"), "background": hexc(kv_rgb, "4d"),
-            "chrome": hexc(dark, "4d"), "pane": hexc(kv_rgb, "82"),
-            "sidebar": hexc(dark, "4d"),
+            "chrome": hexc(dark, "4d"),
+            "pane": [hexc(mix(dark, SHEEN, SHEEN_PANE), PANE_ALPHA), hexc(dark, PANE_ALPHA)],
+            "sidebar": [hexc(mix(dark, SHEEN, SHEEN_SIDEBAR), SIDEBAR_ALPHA), hexc(dark, SIDEBAR_ALPHA)],
         }
-        bgtxt = f"background Kvantum {kv_theme} {hexc(kv_rgb)}{' (light theme, darkened)' if light else ''} at {round(kv_alpha * 100)}%"
+        bgtxt = f"background Kvantum {kv_theme} cooled to {hexc(kv_rgb)}{' (light theme, darkened)' if light else ''} at {round(kv_alpha * WINDOW_CLARITY * 100)}%"
     else:
         bg = {"gradient": [hexc(mix(BASE_BG, rgb, 0.22), "a0"), "#11111b4d"],
               "canvas": "#11111b4d", "background": "#1e1e2e4d",
-              "chrome": "#1818254d", "pane": "#1e1e2e82", "sidebar": "#1818254d"}
+              "chrome": "#1818254d", "pane": ["#62626d82", "#1e1e2e82"], "sidebar": ["#6565704d", "#1818254d"]}
         bgtxt = "background navy (Kvantum not in use)"
-    # Glass without blur: each card is its tint with a light sheen falling from
-    # the top-left corner, and a thin rim of light (the sidebar's leans to the accent).
-    bg["pane"] = {"gradient": [SHEEN_PANE, bg["pane"]], "angle": 160}
-    bg["sidebar"] = {"gradient": [SHEEN_SIDEBAR, bg["sidebar"]], "angle": 160}
-    bg["rim"] = hexc(mix(rgb, (255, 255, 255), 0.6), "40")
+    # Glass without blur: each card is its tint, lighter where the light falls on its
+    # top-left corner but just as dense everywhere (a see-through sheen would let the
+    # wallpaper through and hurt the text), with a rim of light (the sidebar's leans to the accent).
+    bg["pane"] = {"gradient": bg["pane"], "angle": 160}
+    bg["sidebar"] = {"gradient": bg["sidebar"], "angle": 160}
+    bg["rim"] = hexc(mix(rgb, (255, 255, 255), 0.6), RIM_ALPHA)
     layouts = [p for p in LAYOUTS if os.path.exists(p)]
     if not layouts:
         print("kde-sync: no Pixel HQ layout in " + APP, file=sys.stderr)
@@ -308,6 +322,8 @@ def apply_layout(path, acc, bg, radius):
         if isinstance(pane, dict):
             if "background" in pane:
                 pane["background"] = bg["pane"]
+            if isinstance(pane.get("border"), dict):
+                pane["border"]["color"] = RIM_PANE
             if isinstance(pane.get("focus"), dict):
                 pane["focus"]["color"] = acc
             if radius is not None:
