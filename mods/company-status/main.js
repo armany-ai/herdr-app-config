@@ -422,8 +422,8 @@ export default class WorkspaceStatus extends View {
       .child(
         chip(h_flex(), t)
           .id("btn-look")
-          .tooltip("Appearance and transparency")
-          .on_click(() => openOverlay({ mod: "company-look", kind: "popup", frame: "none", width: 280, height: 204 }))
+          .tooltip("Appearance, transparency and blur")
+          .on_click(() => openOverlay({ mod: "company-look", kind: "popup", frame: "none", width: 280, height: 284 }))
           .child("LOOK")
       )
       .child(

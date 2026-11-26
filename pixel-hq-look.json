@@ -1,4 +1,5 @@
 {
   "mode": "system",
-  "transparency": null
+  "transparency": 95,
+  "blur": true
 }

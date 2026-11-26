@@ -35,7 +35,7 @@ LAYOUTS = [os.path.join(APP, f"layouts/{n}.json") for n in ("pixel-hq-glass", "p
 THEME_DARK, THEME_LIGHT = "pixel-hq", "pixel-hq-light"
 THEMES = [os.path.join(APP, f"themes/{n}.json") for n in (THEME_DARK, THEME_LIGHT)]
 # What the person picks in the status bar's Look popover (mods/company-look writes it):
-# {"mode": "system" | "dark" | "light", "transparency": 0..95 or null}
+# {"mode": "system" | "dark" | "light", "transparency": 0..95 or null, "blur": true | false}
 LOOK = os.path.join(APP, "pixel-hq-look.json")
 INK, PAPER = (0x2e, 0x34, 0x40), (0xec, 0xef, 0xf4)  # stand-ins when a theme has no usable color
 BASE_BG = (0x11, 0x11, 0x1B)  # the layout's navy canvas, used when Kvantum isn't the widget style
@@ -91,8 +91,9 @@ def plasma_session():
 
 
 def look_prefs():
-    """(mode, transparency): mode is "system" (follow Kvantum), "dark" or "light";
-    transparency is how see-through the window is, 0..95 percent, or None for Kvantum's own."""
+    """(mode, transparency, blur): mode is "system" (follow Kvantum), "dark" or "light";
+    transparency is how see-through the window is, 0..95 percent, or None for Kvantum's own;
+    blur is whether the window asks the compositor to blur what is behind it."""
     try:
         d = json.load(open(LOOK, encoding="utf-8"))
     except (OSError, ValueError):
@@ -102,7 +103,19 @@ def look_prefs():
     mode = d.get("mode") if d.get("mode") in ("dark", "light") else "system"
     t = d.get("transparency")
     t = max(0.0, min(95.0, float(t))) if isinstance(t, (int, float)) and not isinstance(t, bool) else None
-    return mode, t
+    return mode, t, d.get("blur") is not False
+
+
+def kwin_blur():
+    """(strength, enabled) of KWin's Blur effect: 1..15, and whether the effect is on.
+    The strength is KWin's own setting, shared by every blurred window."""
+    kwinrc = read_ini(os.path.join(HOME, ".config/kwinrc"))
+    try:
+        strength = int(float(kwinrc.get("Effect-blur", "BlurStrength", fallback="15")))
+    except ValueError:
+        strength = 15
+    enabled = kwinrc.get("Plugins", "blurEnabled", fallback="true").lower() != "false"
+    return max(1, min(15, strength)), enabled
 
 
 def kde_accent():
@@ -296,7 +309,7 @@ def main():
     acc = hexc(rgb)
 
     radius, source = window_radius()
-    mode, transparency = look_prefs()
+    mode, transparency, blur = look_prefs()
     kv = kvantum_background()
     white = (255, 255, 255)
     light = False
@@ -381,7 +394,7 @@ def main():
     if not layouts:
         print("kde-sync: no Pixel HQ layout in " + APP, file=sys.stderr)
         return 1
-    changed = [p for p in layouts if write_if_changed(p, apply_layout(p, acc, bg, radius))]
+    changed = [p for p in layouts if write_if_changed(p, apply_layout(p, acc, bg, radius, blur))]
 
     for path in THEMES:
         if not os.path.exists(path):
@@ -393,15 +406,17 @@ def main():
 
     rtxt = f"radius {radius} ({source})" if radius is not None else f"radius unchanged ({source})"
     print(f"kde-sync: accent {acc}; {rtxt}; {bgtxt}; " + (f"updated {', '.join(os.path.relpath(p, APP) for p in changed)}" if changed else "no changes"))
+    blur_strength, blur_effect = kwin_blur()
     # one line for the Look popover: what is showing, and what "system" would give
     print("look: " + json.dumps({"mode": mode, "appearance": "light" if light else "dark",
                                  "transparency": round(100 - win * 100), "auto": transparency is None,
                                  "system_transparency": round(100 - ref * 100),
-                                 "kvantum": kv_theme if kv else None}))
+                                 "kvantum": kv_theme if kv else None,
+                                 "blur": blur, "blur_strength": blur_strength, "blur_effect": blur_effect}))
     return 0
 
 
-def apply_layout(path, acc, bg, radius):
+def apply_layout(path, acc, bg, radius, blur=True):
     layout = json.load(open(path, encoding="utf-8"))
     colors = layout.setdefault("colors", {})
     colors["accent"] = acc
@@ -412,6 +427,7 @@ def apply_layout(path, acc, bg, radius):
             colors.pop(key, None)
     colors.update(bg["ui"])
     layout["theme"] = bg["theme"]
+    layout["window_blur"] = blur
     for node in layout.get("children", []):
         if node.get("id") == "sidebar":
             node["background"] = bg["sidebar"]
