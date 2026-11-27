@@ -23,3 +23,5 @@ backup-*/
 *.before-*
 __pycache__/
 node_modules/
+# The floats' blurred backing, remade each time one opens (mods/company-float)
+backgrounds/company-float-*.png

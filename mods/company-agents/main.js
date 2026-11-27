@@ -2,13 +2,13 @@
 // A viewed done agent stays in Done until left.
 
 import { View, div, svg, image } from "gpui-kit";
-import { v_flex, h_flex, InputState, Input } from "gpui-base";
+import { v_flex, h_flex, InputState, Input, TextView } from "gpui-base";
 import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, settings, openOverlay, closeOverlay, props, window, layout, appHome, exec, readTextFile, writeTextFile, nextCommand, hc, knownAgents, checking } from "herdr";
 import { figureFor, load } from "./figures.js";
 import { agentOf, speciesOf, duckWidth, duckMood, mood, DUCK_CENTER, IDLE_SNOOZE, IDLE_URGE } from "./duck.js";
 import { scene, sceneLayout, yHorizon } from "./scene.js";
 import { Editor } from "./editor.js";
-import { checkPixelHqUpdate, executePixelHqUpdate } from "./updater.js";
+import { checkPixelHqUpdate, executePixelHqUpdate, getPixelHqChangelog, readInstalledRelease, restorePixelHqUpdate } from "./updater.js";
 import { snapshot, clashes, hire, agentTaskArgv } from "./crew.js";
 // This mod is a dark room whatever the theme shows: under a light theme (dark text) it keeps
 // the dark look's text and panel colors, so its fixed dark boxes and pixel art stay readable.
@@ -333,6 +333,13 @@ const agyTranscriptVitals = async (cwd, machine) => {
 
 export default class Agents extends View {
   init(_props, cx) {
+    if (props()?.changelog) {
+      cx.spawn(async (cx) => {
+        this.installedRelease = await readInstalledRelease();
+        cx.notify();
+      });
+      return;
+    }
     if (props()?.needsYou || props()?.workload || props()?.today) return;
     if (props()?.sortMenu) return;
     if (props()?.figures) { this.editor = new Editor(cx); return; }
@@ -384,7 +391,7 @@ export default class Agents extends View {
     this.scanCodex(cx);
     cx.timer.every(8000, (cx) => this.scanCodex(cx));
     // `company-agents.hire` (a key binding, or herdr-app do) opens the hire form.
-    cx.spawn(async (cx) => { for (;;) { const c = await nextCommand(); if (c === "hire") this.openHire(cx); if (c === "update") this.runUpdate(); if (c === "needsYou") this.openNeedsYou(); } });
+    cx.spawn(async (cx) => { for (;;) { const c = await nextCommand(); if (c === "hire") this.openHire(cx); if (c === "update") this.runUpdate(cx); if (c === "changelog") this.openChangelog(); if (c === "needsYou") this.openNeedsYou(); } });
     // OpenCode 1.x does not report a status by itself, so without help it never gets a desk. Once, if OpenCode is installed, drop its
     // status plugin (this mod's opencode-status.js) into OpenCode's plugins folder. Only ever replaces Pixel HQ's own older copy;
     // deleting the file removes it for good.
@@ -409,7 +416,10 @@ export default class Agents extends View {
     this.setupHermes(cx);
     this.announceHermes(cx);
     cx.timer.every(5000, (cx) => this.announceHermes(cx));
-    checkPixelHqUpdate(true).then(() => cx.notify()).catch(() => {});
+    if (!checking()) cx.spawn(async (cx) => {
+      await restorePixelHqUpdate(cx);
+      await checkPixelHqUpdate(true);
+    });
     cx.timer.every(6 * 3600 * 1000, (cx) => checkPixelHqUpdate(true).then(() => cx.notify()).catch(() => {}));
     // Now and then (every 14 to 32 s) one idle pet steps out beside its desk for about 3.6 s, then comes back.
     this.out = null;
@@ -1213,8 +1223,36 @@ export default class Agents extends View {
     cx.notify();
   }
 
-  runUpdate() {
-    executePixelHqUpdate();
+  runUpdate(cx) {
+    cx.spawn((cx) => executePixelHqUpdate(cx));
+  }
+
+  openChangelog() {
+    openOverlay({ mod: "company-agents", kind: "dialog", frame: "none", width: 0.62, height: 0.84, props: { changelog: true } });
+  }
+
+  changelog(t) {
+    const log = getPixelHqChangelog(this.installedRelease, shared("pixel-hq.new-version"), shared("pixel-hq.updated"));
+    const entries = log?.entries ?? [];
+    return div().id("changelog").relative().size_full()
+      .children(box(t.raised, t.chrome, t.surface))
+      .child(v_flex().relative().size_full()
+        .child(h_flex().flex_none().items_center().justify_between().gap(16).px(24).py(18)
+          .border_b(1).border_color(t.raised).font_family("JetBrains Mono")
+          .child(v_flex().gap(6)
+            .child(div().font_bold().text_size(15).text_color(t.foreground).child("PIXEL HQ CHANGELOG"))
+            .child(div().font_bold().text_size(12).text_color(t.accent).child(log?.label ?? "Loading release notes…")))
+          .child(div().id("changelog-close").cursor_pointer().px(10).py(6).text_size(11).text_color(t.muted)
+            .hover(s => s.bg(t.hover)).on_click(() => closeOverlay(props()?.overlay)).child("CLOSE")))
+        .child(v_flex().id("changelog-entries").flex_1().min_h(0).overflow_y_scrollbar().items_center().p(24)
+          .child(v_flex().w_full().max_w(880).gap(16)
+            .when(Boolean(log && !entries.length), el =>
+              el.child(div().text_size(12).text_color(t.muted).child("No release notes published for this update.")))
+            .children(entries.map(({ version, notes }) =>
+              v_flex().flex_none().gap(10).p(16).border_1().border_color(t.raised)
+                .when(entries.length > 1, el => el.child(div().font_bold().text_size(12).text_color(t.accent).child(`v${version}`)))
+                .child(TextView.markdown(`release-notes-${version}`, notes || "No release notes published.").raw_html(false).scrollable(false))
+            )))));
   }
 
   // The paper pile on a desk: the first click arms it, the second (within 6 s) sends the agent /compact (which already summarizes).
@@ -1519,6 +1557,7 @@ export default class Agents extends View {
   render(cx) {
     const t = darkRoom(theme());
     if (props()?.sortMenu) return this.sortMenu(t);
+    if (props()?.changelog) return this.changelog(t);
     if (props()?.needsYou) return this.needsYou(t);
     if (props()?.workload) return this.workloadView(t);
     if (props()?.today) return this.todayView(t);
@@ -1790,7 +1829,6 @@ export default class Agents extends View {
     const pick = P0.find((p) => p.cols * p.rows >= nAgents) ?? P0[P0.length - 1];
     const S = pick.sc, PET = pick.P, petW = pick.pw, cellW = pick.cw, cellH = pick.ch;
     const kk = (v) => Math.round(v * S);
-    const fieldH = Math.max(0, sz.height - fieldTop - cellH);
     const endDrag = (cx) => {
       const d = this.drag;
       if (!d) return;
@@ -1800,7 +1838,7 @@ export default class Agents extends View {
         const isLongIdle = clicked?.status === "idle" && this.waitOf(clicked.address, clicked.status, now) >= IDLE_SNOOZE;
         if (isLongIdle) this.nudge(clicked, cx);
         else run("pane.focus", { pane: d.pane });
-      } else localStorage.setItem("petpos", JSON.stringify(this.petpos));
+      } else { this.gridDrop?.(d.addr); localStorage.setItem("petpos", JSON.stringify(this.petpos)); }
       cx.notify();
     };
     const ROLES = (a) => ((shared("pixel-hq.names") ?? {})[a.pane]?.role ?? agentOf(a.program?.key)?.role ?? "").toLowerCase();
@@ -1815,21 +1853,45 @@ export default class Agents extends View {
     const seated = list.slice(0, pick.cols * pick.rows);
     const shownSet = new Set(seated.map((x) => x.address));
     const order = stable.filter((x) => shownSet.has(x));
-    const colsUsed = Math.min(pick.cols, Math.max(2, Math.ceil(seated.length / pick.rows)));
-    const rowsUsed = Math.ceil(seated.length / colsUsed);
+    // macOS desktop grid: a fixed cols x rows grid of cells, one desk per cell. A dragged desk moves freely and lands in the
+    // nearest free cell; desks never placed by hand fill the free cells left to right, top to bottom.
+    const gCols = pick.cols, gRows = pick.rows;
+    // Room for the cubicle panels (9 units each side) and the server rack (11 units right), so an edge desk shows them.
+    const cellXY = (k) => [Math.max(kk(10), Math.min(sz.width - petW - kk(12), ((k % gCols) + 0.5) * sz.width / gCols - petW / 2)), fieldTop + Math.floor(k / gCols) * cellH];
+    const taken = new Set(), cellOf = new Map();
+    const nearest = (x, y) => {
+      let best = -1, bd = Infinity;
+      for (let k = 0; k < gCols * gRows; k++) {
+        if (taken.has(k)) continue;
+        const [cx0, cy0] = cellXY(k), dd = (cx0 - x) ** 2 + (cy0 - y) ** 2;
+        if (dd < bd) { bd = dd; best = k; }
+      }
+      return best;
+    };
+    const claim = (addr, k) => { taken.add(k); cellOf.set(addr, k); };
+    const dragging = this.drag?.moved ? this.drag.addr : null;
+    for (const addr of order) { const own = this.petpos[addr]; if (own && addr !== dragging) claim(addr, nearest(own[0] * sz.width, own[1] * sz.height)); }
+    // Cells are numbered row-major, so the lowest free index is the next cell left to right, top to bottom.
+    const firstFree = () => { let k = 0; while (taken.has(k)) k++; return k; };
+    for (const addr of order) if (!cellOf.has(addr) && addr !== dragging) claim(addr, firstFree());
+    // Pin everyone to the cell they show in now, so a drag never shuffles the other desks.
+    this.pinAll = () => { for (const [o, k] of cellOf) { const [x, y] = cellXY(k); this.petpos[o] = [x / sz.width, y / sz.height]; } };
+    this.gridDrop = (addr) => {
+      this.pinAll();
+      const own = this.petpos[addr];
+      if (!own) return;
+      const k = nearest(own[0] * sz.width, own[1] * sz.height);
+      if (k < 0) return;
+      const [x, y] = cellXY(k);
+      this.petpos[addr] = [x / sz.width, y / sz.height];
+    };
     const hidden = list.length - seated.length;
     const posOf = new Map();
     const monoF = "JetBrains Mono";
     const pets = seated.map((a, i) => {
-      // A pet keeps its desk: slots follow a stable order, not the status sort.
-      const slot = order.indexOf(a.address);
-      const sx = ((slot % colsUsed) + 0.5) / colsUsed;
-      const sy = rowsUsed > 1 ? (Math.floor(slot / colsUsed) + ((slot % colsUsed) % 2) * (rowsUsed < 3 ? 0.12 : 0)) / (rowsUsed - 1 + (rowsUsed < 3 ? 0.12 : 0)) : 0;
-      const lap = 0;
+      // A pet keeps its desk: cells follow a stable order, not the status sort. The one being dragged follows the pointer.
       const own = this.petpos[a.address];
-      // Room for the cubicle panels (9 units each side) and the server rack (11 units right), so an edge desk shows them.
-      const left = own ? own[0] * sz.width : Math.max(kk(10), Math.min(sz.width - petW - kk(12), sz.width * Math.min(0.92, sx + lap) - petW / 2));
-      const top = own ? own[1] * sz.height : fieldTop + fieldH * Math.min(1, sy + lap);
+      const [left, top] = a.address === dragging && own ? [own[0] * sz.width, own[1] * sz.height] : cellXY(cellOf.get(a.address));
       posOf.set(a.address, { x: left + petW / 2, y: top + PET * 0.5 });
       const ctx = contextOf.get(a.address);
       const ctxPct = ctx?.pct ?? null;
@@ -2042,6 +2104,8 @@ export default class Agents extends View {
         const d = this.drag;
         if (!d) return;
         if (!d.moved && Math.hypot(e.position.x - d.sx, e.position.y - d.sy) < 4) return;
+        // Pin before the first move: once the dragged desk leaves its cell, unpinned desks would re-fill from cell 0.
+        if (!d.moved) this.pinAll?.();
         d.moved = true;
         const z = Number(settings()?.zoom) > 0 ? Number(settings().zoom) : 1;
         const x = Math.max(0, Math.min(sz.width - petW, (e.local_position.x - d.dx) / z));
