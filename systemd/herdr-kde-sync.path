@@ -1,0 +1,13 @@
+[Unit]
+Description=Watch KDE Plasma colors, Kvantum theme and window corners for Herdr's Hardr layout
+
+[Path]
+PathChanged=%h/.config/kdeglobals
+PathChanged=%h/.config/kwinrc
+PathChanged=%h/.config/breezerc
+PathChanged=%h/.config/kdedefaults/kdeglobals
+PathChanged=%h/.config/Kvantum/kvantum.kvconfig
+Unit=herdr-kde-sync.service
+
+[Install]
+WantedBy=default.target
