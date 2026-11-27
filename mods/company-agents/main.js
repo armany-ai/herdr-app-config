@@ -10,20 +10,6 @@ import { scene, sceneLayout, yHorizon } from "./scene.js";
 import { Editor } from "./editor.js";
 import { checkPixelHqUpdate, executePixelHqUpdate, getPixelHqChangelog, readInstalledRelease, restorePixelHqUpdate } from "./updater.js";
 import { snapshot, clashes, hire, agentTaskArgv } from "./crew.js";
-// This mod is a dark room whatever the theme shows: under a light theme (dark text) it keeps
-// the dark look's text and panel colors, so its fixed dark boxes and pixel art stay readable.
-const darkRoom = (t) => {
-  const f = t?.foreground ?? "";
-  if (!/^#[0-9a-f]{6}/i.test(f)) return t;
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(f.slice(i, i + 2), 16));
-  if (0.2126 * r + 0.7152 * g + 0.0722 * b >= 128) return t;
-  return { ...t, foreground: "#eceff4", muted: "#d8dee9", dim: "#7f849c", chrome: "#1b2130d9", canvas: "#1b2130d9",
-    surface: "#262637", raised: "#313244", popover: "#2e3440", border: "#ffffff14", hover: "#ffffff10", selected: "#ffffff14",
-    working: "#81a1c1", blocked: "#ebcb8b", done: "#a3be8c", idle: "#616e88" };
-};
-
-// Local edit: Pixel HQ's start-up setup of Claude/OpenCode/Hermes/Codex/Antigravity configs is off. Set true to opt in.
-const AUTO_SETUP = false;
 
 // The figure editor, as a dialog; `space` opens it on that space's pick.
 const openFigures = (space) => openOverlay({ mod: "company-agents", kind: "dialog", frame: "none", width: 860, height: 640, props: { figures: true, ...(space ? { space } : {}) } });
@@ -37,10 +23,9 @@ function find(node, id) {
   return null;
 }
 
-// Local edit: rounded instead of pixel-notched corners. A box's fill sits 2px inside its frame, so it gets 2px less radius.
-const ROUND = 12;
 const notch = (c, [l, r, t, b]) => [
-  div().absolute().left(l).right(r).top(t).bottom(b).rounded(r === 4 ? ROUND - 2 : ROUND).bg(c),
+  div().absolute().left(l + 2).right(r + 2).top(t).bottom(b).bg(c),
+  div().absolute().left(l).right(r).top(t + 2).bottom(b + 2).bg(c),
 ];
 const box = (frame, fill, shadow) => [
   ...notch(shadow, [2, 0, 2, 0]),
@@ -134,8 +119,6 @@ function thinBar(t, pct, color, width) {
     .child(div().h_full().bg(color).w(fill));
 }
 const hpColor = (t, pct) => (pct >= 80 ? t.ansi1 : pct >= 60 ? t.ansi3 : t.ansi2);
-// The layout accent (synced from KDE Plasma by kde-sync.py), as #rrggbb so alpha suffixes work.
-const ACC = (t) => (/^#[0-9a-f]{6}/i.test(t?.accent ?? "") ? t.accent.slice(0, 7) : "#89b4fa");
 const spColor = (t, left) => (left <= 10 ? t.ansi1 : left <= 30 ? t.ansi3 : "#89b4fa");
 const modelOf = (ctx) => (ctx.model ? [ctx.model, ctx.effort].filter(Boolean).join(" · ") : ctx.effort ? `effort ${ctx.effort}` : "");
 const vitalsTip = (ctx) => [ctx.pct != null ? `Context ${ctx.pct}% used` : null, ctx.quota != null ? `${ctx.quota}% of the quota window left` : null, modelOf(ctx)].filter(Boolean).join(" · ");
@@ -722,7 +705,7 @@ export default class Agents extends View {
                   .child(v_flex().flex_1().min_w(0).gap(1)
                     .child(div().truncate().font_family(mono).font_bold().text_size(11.5).text_color(t.foreground).child(name))
                     .child(div().truncate().font_family(mono).text_size(9.5).text_color(t.muted).child(sub)))
-                  .child(div().flex_none().font_family(mono).font_bold().text_size(12).text_color(ACC(t)).child("→"));
+                  .child(div().flex_none().font_family(mono).font_bold().text_size(12).text_color("#89b4fa").child("→"));
               }))
           )
       );
@@ -1121,7 +1104,7 @@ export default class Agents extends View {
                   .child(v_flex().flex_1().min_w(0).gap(1)
                     .child(div().truncate().font_family(mono).font_bold().text_size(11.5).text_color(t.foreground).child([a.space_name, a.program?.name].filter(Boolean).join(" · ")))
                     .child(div().truncate().font_family(mono).text_size(9.5).text_color(t.muted).child(parts)))
-                  .child(div().flex_none().font_family(mono).font_bold().text_size(12).text_color(ACC(t)).child("→"));
+                  .child(div().flex_none().font_family(mono).font_bold().text_size(12).text_color("#89b4fa").child("→"));
               }))
           )
       );
@@ -1277,7 +1260,6 @@ export default class Agents extends View {
   }
 
   async setupOpenCode(cx) {
-    if (!AUTO_SETUP) return; // local edit: no automatic changes to agent configs outside Herdr
     this.lastSetupOpenCodeAttempt = Date.now();
     if (this.isBusy(/opencode/)) {
       this.pendingSetupOpenCode = true;
@@ -1311,7 +1293,6 @@ export default class Agents extends View {
   }
 
   async setupOpenCodeHp(cx) {
-    if (!AUTO_SETUP) return; // local edit: no automatic changes to agent configs outside Herdr
     if (this.isBusy(/opencode/)) {
       this.pendingSetupOpenCode = true;
       return;
@@ -1348,7 +1329,6 @@ export default class Agents extends View {
   // in terminal.client_env_passthrough, once, so `hermes --tui` sessions (run by a shared host with no terminal) know their terminal.
   // The steps are in hermes-setup.sh. Unix only; Hermes reads all of it on its next start.
   async setupHermes(cx) {
-    if (!AUTO_SETUP) return; // local edit: no automatic changes to agent configs outside Herdr
     if (checking() || window()?.platform === "windows") return; // a check must not touch ~/.hermes
     const dir = `${appHome()}/mods/company-agents`;
     const r = await exec("sh", [`${dir}/hermes-setup.sh`, `${dir}/hermes-status`], { timeout: 300000 }).catch(() => null);
@@ -1377,7 +1357,6 @@ export default class Agents extends View {
   }
 
   async setupClaude(cx) {
-    if (!AUTO_SETUP) return; // local edit: no automatic changes to agent configs outside Herdr
     this.lastSetupClaudeAttempt = Date.now();
     if (this.isBusy(/claude/)) {
       this.pendingSetupClaude = true;
@@ -1451,7 +1430,6 @@ export default class Agents extends View {
   }
 
   async setupAntigravity(cx) {
-    if (!AUTO_SETUP) return; // local edit: no automatic changes to agent configs outside Herdr
     this.lastSetupAntigravityAttempt = Date.now();
     if (this.isBusy(/antigravity|agy/)) {
       this.pendingSetupAntigravity = true;
@@ -1527,7 +1505,6 @@ export default class Agents extends View {
   }
 
   async setupCodex(cx) {
-    if (!AUTO_SETUP) return; // local edit: no automatic changes to agent configs outside Herdr
     this.lastSetupCodexAttempt = Date.now();
     if (this.isBusy(/codex/)) {
       this.pendingSetupCodex = true;
@@ -1555,7 +1532,7 @@ export default class Agents extends View {
   }
 
   render(cx) {
-    const t = darkRoom(theme());
+    const t = theme();
     if (props()?.sortMenu) return this.sortMenu(t);
     if (props()?.changelog) return this.changelog(t);
     if (props()?.needsYou) return this.needsYou(t);
@@ -2076,7 +2053,6 @@ export default class Agents extends View {
     const todayNow = this.today?.day === dayKey() ? this.today : freshDay();
     const officeLoad = everyone.reduce((n, a) => { const x = activityOf.get(a.address); return n + (x ? x.interns.length + x.jobs : 0); }, 0);
     const sceneOpts = {
-      accent: ACC(t),
       music: Boolean(shared("pixel-hq.music")?.playing),
       now: new Date(),
       spaces: spaces().map((sp) => ({ id: sp.id, name: sp.name, status: sp.status, active: sp.active })),
@@ -2156,7 +2132,7 @@ export default class Agents extends View {
       .children(links)
       .children(this.drag?.moved ? [...pets.filter((_, i) => seated[i].address !== this.drag.addr), ...pets.filter((_, i) => seated[i].address === this.drag.addr)] : pets)
       .when(Boolean(this.notice), (el) => {
-        const box = v_flex().id("oc-notice").absolute().left(8).right(8).top(horizon + 6).px(8).py(6).gap(6).bg("#11111bee").border_1().border_color(ACC(t)).text_size(11).text_color("#cdd6f4")
+        const box = v_flex().id("oc-notice").absolute().left(8).right(8).top(horizon + 6).px(8).py(6).gap(6).bg("#11111bee").border_1().border_color("#89b4fa").text_size(11).text_color("#cdd6f4")
           .on_mouse_down("left", (_e, cx) => cx.stop_propagation());
         return el.child(box.cursor_pointer().on_click((_e, cx) => { this.notice = null; cx.notify(); }).child(this.notice));
       })
@@ -2190,7 +2166,7 @@ export default class Agents extends View {
             .children(frame("#45475a", "#181825"))
             .child(h_flex().size_full().px(10).gap(8).items_center().justify_between()
               .child(h_flex().min_w(0).gap(7).items_center().child(corgi)
-                .child(div().min_w(0).truncate().font_family(mono).font_bold().text_size(10).text_color(ACC(t)).child("ENGINEERING FLOOR")))
+                .child(div().min_w(0).truncate().font_family(mono).font_bold().text_size(10).text_color("#89b4fa").child("ENGINEERING FLOOR")))
               .child(h_flex().gap(10).items_center().flex_none()
                 .when(blockedAll.length > 0, (el) => el.child(div().id("ag-needs-you").relative().w(14).h(14).flex_none().cursor_pointer()
                   .tooltip(`${blockedAll.length} ${blockedAll.length === 1 ? "agent needs" : "agents need"} you · open the list`)
@@ -2202,7 +2178,7 @@ export default class Agents extends View {
                 .child(div().id("ag-hire").relative().w(14).h(14).flex_none().cursor_pointer()
                   .tooltip("Hire staff: a new agent in its own git worktree")
                   .on_click((_e, cx) => this.openHire(cx))
-                  .children([[5, 1, 4, 12], [1, 5, 12, 4]].map(([x, y, w, h]) => div().absolute().left(x).top(y).w(w).h(h).bg(this.hiring.open ? "#f9e2af" : ACC(t)))))
+                  .children([[5, 1, 4, 12], [1, 5, 12, 4]].map(([x, y, w, h]) => div().absolute().left(x).top(y).w(w).h(h).bg(this.hiring.open ? "#f9e2af" : "#89b4fa"))))
                 .child(div()
                   .id("ag-figures")
                   .text_color(t.dim)
@@ -2227,23 +2203,23 @@ export default class Agents extends View {
         const box = (state) => div().w_full().h(26).px(8).flex().items_center().bg("#181825").border_1().border_color("#45475a")
           .child(Input.new(state).h_full().w_full().text_size(11.5).font_family(mono).text_color(t.foreground));
         const btn = (id, text, fill, ink, act) => div().id(id).px(10).h(24).flex().items_center().cursor_pointer().bg(fill).text_size(10.5).font_family(mono).font_bold().text_color(ink).on_click(act).child(text);
-        return el.child(div().relative().mx(10).mt(8).flex_none().children(frame(ACC(t), "#11111b"))
+        return el.child(div().relative().mx(10).mt(8).flex_none().children(frame("#89b4fa", "#11111b"))
           .child(v_flex().px(12).py(10).gap(6)
-            .child(div().font_family(mono).font_bold().text_size(10).text_color(ACC(t)).child("HIRE STAFF · NEW WORKTREE"))
+            .child(div().font_family(mono).font_bold().text_size(10).text_color("#89b4fa").child("HIRE STAFF · NEW WORKTREE"))
             .child(box(this.ticketInput))
             .child(box(this.repoInput))
             .child(h_flex().gap(4).flex_wrap().children(["claude", "codex", "opencode", "agy", "hermes"].map((pg) => div().id(`hire-${pg}`).px(8).h(22).flex().items_center().cursor_pointer().border_1()
-              .border_color(h.program === pg ? ACC(t) : "#45475a").bg(h.program === pg ? ACC(t) + "22" : "#181825").text_size(10.5).font_family(mono).text_color(h.program === pg ? ACC(t) : "#a6adc8")
+              .border_color(h.program === pg ? "#89b4fa" : "#45475a").bg(h.program === pg ? "#89b4fa22" : "#181825").text_size(10.5).font_family(mono).text_color(h.program === pg ? "#89b4fa" : "#a6adc8")
               .on_click((_e, cx) => { h.program = pg; cx.notify(); }).child(pg))))
             .when(Boolean(h.error), (e2) => e2.child(div().text_size(10.5).text_color("#ff5370").child(h.error)))
-            .child(h_flex().gap(6).child(btn("hire-go", h.busy ? "Creating..." : "Hire", ACC(t), "#11111b", (_e, cx) => this.doHire(cx)))
+            .child(h_flex().gap(6).child(btn("hire-go", h.busy ? "Creating..." : "Hire", "#89b4fa", "#11111b", (_e, cx) => this.doHire(cx)))
               .child(btn("hire-cancel", "Cancel", "#313244", "#cdd6f4", (_e, cx) => this.openHire(cx))))));
       })
       .when(!collapsed, (el) => el.child(div().id("staff-search").relative().mx(10).mt(4).mb(8).h(32).flex_none()
         .child(div().absolute().left(2).right(2).bottom(-2).h(2).bg("#11111b"))
-        .children(frame(this.typing ? ACC(t) : "#45475a", "#11111b"))
+        .children(frame(this.typing ? "#89b4fa" : "#45475a", "#11111b"))
         .child(h_flex().size_full().px(10).gap(8).items_center()
-          .child(magnifier(this.typing ? ACC(t) : "#7f849c"))
+          .child(magnifier(this.typing ? "#89b4fa" : "#7f849c"))
           .child(div().flex_1().min_w(0).h_full().flex().items_center().cursor_text().on_mouse_down("left", (_e, cx) => cx.stop_propagation())
             .child(Input.new(this.searchInput).h_full().text_size(12).font_family(mono).text_color(t.foreground)))
           .when(Boolean(q), (e2) => e2

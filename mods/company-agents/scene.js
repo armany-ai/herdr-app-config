@@ -19,7 +19,7 @@ function ellipse(cx, cy, rx, ry, c) {
 // The tech corner on the wall: a server rack (drive bays, vents and fans, a glowing light on every unit) and a modern little desk with a monitor, keyboard and a mug.
 const LIGHTS = ["#f4723a", "#f9d23c", "#8fcb4f", "#37c5d6", "#c678dd", "#f38ba8"];
 const CODE = ["#cba6f7", "#89b4fa", "#a6e3a1", "#f9e2af", "#f5c2e7", "#94e2d5"]; // keyword, function, string, class, tag, type
-function ledWall(x, w, base, isMusicPlaying = false, load = 0, A = "#89b4fa") {
+function ledWall(x, w, base, isMusicPlaying = false, load = 0) {
   const o = [], top = 8, rw = w >= 64 ? snap(Math.min(28, w * 0.34)) : snap(w), rh = snap(Math.min(base - top, 80)), rt = base - rh;
   // Server rack: a cabinet with a lit top cap, a darker side, a plinth with feet, and units of three kinds.
   o.push(r(x - 2, rt - 2, rw + 4, rh + 2, "#0a0c1a"), r(x, rt, rw, rh, "#1a1f3d"), r(x + rw - 3, rt, 3, rh, "#12152c"), r(x, rt, 1, rh, "#2c3366"),
@@ -49,19 +49,19 @@ function ledWall(x, w, base, isMusicPlaying = false, load = 0, A = "#89b4fa") {
       r(rx, ry + 2, 18, 9, "#313244"),
       r(rx + 4, ry, 10, 2, "#45475a"),
       r(rx + 2, ry + 4, 4, 5, "#181825"),
-      r(rx + 3, ry + 5, 2, 3, isMusicPlaying ? A : "#45475a"),
+      r(rx + 3, ry + 5, 2, 3, isMusicPlaying ? "#89b4fa" : "#45475a"),
       r(rx + 12, ry + 4, 4, 5, "#181825"),
-      r(rx + 13, ry + 5, 2, 3, isMusicPlaying ? A : "#45475a"),
+      r(rx + 13, ry + 5, 2, 3, isMusicPlaying ? "#89b4fa" : "#45475a"),
       r(rx + 7, ry + 4, 4, 4, "#11111b"),
-      r(rx + 15, ry - 3, 1, 3, A),
+      r(rx + 15, ry - 3, 1, 3, "#89b4fa"),
       r(rx + 8, ry + 2, 2, 1, isMusicPlaying ? "#a6e3a1" : "#585b70")
     );
     if (isMusicPlaying) {
       o.push(
         r(rx + 4, ry - 6, 2, 2, "#cba6f7").loop("opacity", { from: 0.1, to: 1, period: 1400, easing: "ease-in-out" }),
         r(rx + 5, ry - 9, 1, 4, "#cba6f7").loop("opacity", { from: 0.1, to: 1, period: 1400, easing: "ease-in-out" }),
-        r(rx + 11, ry - 9, 2, 2, A).loop("opacity", { from: 0.8, to: 0.1, period: 1700, easing: "ease-in-out" }),
-        r(rx + 12, ry - 12, 1, 4, A).loop("opacity", { from: 0.8, to: 0.1, period: 1700, easing: "ease-in-out" }),
+        r(rx + 11, ry - 9, 2, 2, "#89b4fa").loop("opacity", { from: 0.8, to: 0.1, period: 1700, easing: "ease-in-out" }),
+        r(rx + 12, ry - 12, 1, 4, "#89b4fa").loop("opacity", { from: 0.8, to: 0.1, period: 1700, easing: "ease-in-out" }),
         r(rx + 17, ry - 5, 2, 2, "#f5c2e7").loop("opacity", { from: 0.2, to: 0.9, period: 1200, easing: "ease-in-out" })
       );
     }
@@ -72,7 +72,7 @@ function ledWall(x, w, base, isMusicPlaying = false, load = 0, A = "#89b4fa") {
   const mx = x + rw + 6, mw = snap(w - rw - 6), deskY = base - 17;
   const mh = Math.max(24, Math.min(deskY - top - 20, Math.round(mw * 0.8)));
   const my = deskY - 11 - mh, sy = my + mh + 3;
-  o.push(r(mx - 4, my - 6, mw + 8, mh + 12, A + "0c"), // the screen's glow on the wall
+  o.push(r(mx - 4, my - 6, mw + 8, mh + 12, "#89b4fa0c"), // the screen's glow on the wall
     r(mx - 6, base, mw + 12, 2, "#0a0c1a66"),
     // a modern desk: a slim light top, thin dark legs with feet, a cable tray, a hanging white drawer and a glowing LED strip underneath
     r(mx - 5, deskY, mw + 10, 3, "#dfe3f2"), r(mx - 5, deskY, mw + 10, 1, "#f4f6fc"), r(mx - 5, deskY + 3, mw + 10, 1, "#9aa1c2"),
@@ -87,7 +87,7 @@ function ledWall(x, w, base, isMusicPlaying = false, load = 0, A = "#89b4fa") {
     // title bar with three dots and a tab
     r(mx, my, mw, 5, "#232a5c"), r(mx + 2, my + 1, 3, 3, "#f38ba8"), r(mx + 7, my + 1, 3, 3, "#f9e2af"), r(mx + 12, my + 1, 3, 3, "#a6e3a1"), r(mx + 18, my + 1, Math.min(14, mw - 40), 4, "#10143a"), flick(r(mx + mw - 12, my + 1, 9, 3, "#a6e3a1"), 0.35, 1000),
     // status bar
-    r(mx, my + mh - 4, mw, 4, "#1d2250"), r(mx + 2, my + mh - 3, 8, 2, A), flick(r(mx + 12, my + mh - 3, 6, 2, "#a6e3a1"), 0.3, 800), r(mx + mw - 9, my + mh - 3, 6, 2, "#f9e2af"),
+    r(mx, my + mh - 4, mw, 4, "#1d2250"), r(mx + 2, my + mh - 3, 8, 2, "#89b4fa"), flick(r(mx + 12, my + mh - 3, 6, 2, "#a6e3a1"), 0.3, 800), r(mx + mw - 9, my + mh - 3, 6, 2, "#f9e2af"),
     // keyboard, mouse, mug with steam
     r(mx + 3, deskY - 3, Math.min(mw - 16, 26), 3, "#2a2f4f"), r(mx + 3, deskY - 3, Math.min(mw - 16, 26), 1, "#f5c2e7").loop("opacity", { from: 0.3, to: 1, period: 2600, easing: "ease-in-out" }), r(mx + 3, deskY - 3, Math.min(mw - 16, 26), 1, "#89dceb").loop("opacity", { from: 1, to: 0.3, period: 2600, easing: "ease-in-out" }), r(mx + mw - 12, deskY - 2, 4, 2, "#aab4d6"),
     r(mx + mw - 6, deskY - 5, 5, 5, "#e8e2d0"), r(mx + mw - 1, deskY - 4, 2, 3, "#e8e2d0"), r(mx + mw - 5, deskY - 5, 3, 1, "#6b4430"),
@@ -106,7 +106,7 @@ function ledWall(x, w, base, isMusicPlaying = false, load = 0, A = "#89b4fa") {
     }
     const py = tY + tH - 5, segs = Math.floor((mw - 6 - 14) / 3), lit = Math.max(1, segs - 2);
     for (let q = 0; q < segs; q++) { const seg = r(mx + 3 + q * 3, py, 2, 2, q < lit ? "#a6e3a1" : "#1d2250"); o.push(q === lit - 1 ? flick(seg, 0.2, 600) : seg); }
-    for (let t = 0; t < 4; t++) { const h = 2 + Math.floor(rnd(t * 3 + 5) * 3); o.push(flick(r(mx + mw - 14 + t * 3, py + 2 - h, 2, h, A), 0.25, 380 + t * 170)); }
+    for (let t = 0; t < 4; t++) { const h = 2 + Math.floor(rnd(t * 3 + 5) * 3); o.push(flick(r(mx + mw - 14 + t * 3, py + 2 - h, 2, h, "#89b4fa"), 0.25, 380 + t * 170)); }
   }
   const rows = Math.floor(edH / 4), indents = [0, 1, 1, 2, 2, 1, 2, 0, 1, 2, 1, 0], right = mx + mw - 9;
   for (let row = 0; row < rows; row++) {
@@ -184,12 +184,9 @@ export function scene(W, H, opts = {}) {
   const now = opts.now ?? new Date();
   const ph = phaseOf(now), P = PHASES[ph.name];
   const L = [];
-  // The layout accent (synced from KDE Plasma), as #rrggbb; used lightly: wall trim, rug, rack LEDs, screen glow.
-  const A = /^#[0-9a-f]{6}/i.test(opts.accent ?? "") ? opts.accent.slice(0, 7) : "#89b4fa";
 
   // Back wall: slate, a lighter band, a dark skirting and a dark line under the ceiling.
   L.push(r(0, 0, W, yH, "#262a42"), r(0, 0, W, 4, "#161827"), r(0, yH - 32, W, 24, "#2c3150"), r(0, yH - 32, W, 4, "#363c5f"), r(0, base, W, 8, "#171a2c"));
-  L.push(r(0, yH - 28, W, 1, A + "4d")); // a thin accent trim along the wall band
 
   // Windows onto the city: the sky of the hour, stars at night, the sun or the moon crossing from the left window to the right.
   for (const wn of wins) {
@@ -212,7 +209,7 @@ export function scene(W, H, opts = {}) {
   for (const b of buildings) {
     const k = buildings.indexOf(b), sp = spaceList[k] ?? null, st = sp?.status ?? null;
     L.push(r(b.x, b.y, b.w, b.h, P.city));
-    if (sp?.active) L.push(r(b.x, b.y, b.w, 2, A));
+    if (sp?.active) L.push(r(b.x, b.y, b.w, 2, "#89b4fa"));
     const rows = Math.max(1, Math.min(4, Math.floor((b.h - 6) / 10)));
     for (let q = 0; q < rows * 2; q++) {
       const lx = b.x + 4 + (q % 2) * 8, ly = b.y + 6 + Math.floor(q / 2) * 10;
@@ -298,21 +295,13 @@ export function scene(W, H, opts = {}) {
   L.push(r(px + 2, base - 18, 24, 18, "#8a5a3c"), r(px, base - 18, 28, 4, "#a06c48"), r(px + 4, base - 14, 20, 1, "#6f472f"));
 
   // The tech corner, with the office's load on the rack.
-  L.push(...ledWall(Lo.rackX, Lo.rackW, base, Boolean(opts.music), Math.max(0, opts.load ?? 0), A));
+  L.push(...ledWall(Lo.rackX, Lo.rackW, base, Boolean(opts.music), Math.max(0, opts.load ?? 0)));
 
   // Tiled floor: a dark base with a grid of 24px tiles, and a pool of window light under each window.
   L.push(r(0, yH, W, H - yH, "#242843"));
   for (let x = 0; x < W; x += 24) L.push(r(x, yH, 2, H - yH, "#1c1f36"));
   for (let y = yH + 4; y < H; y += 24) L.push(r(0, y, W, 2, "#1c1f36"));
   for (const wn of wins) for (let i = 0; i < 9; i++) L.push(r(wn.x + i * 6, yH + 8 + i * 8, Math.round(wn.w * 0.85), 8, P.pool));
-  // A rug in the accent color under the desks: a faint fill, a border and an inner stripe.
-  {
-    const rx = 16, ry = snap(yH + 16), rw = W - 32, rh = snap(H - yH - 32);
-    if (rw > 40 && rh > 40) L.push(
-      r(rx, ry, rw, rh, A + "0f"),
-      r(rx, ry, rw, 2, A + "30"), r(rx, ry + rh - 2, rw, 2, A + "30"), r(rx, ry, 2, rh, A + "30"), r(rx + rw - 2, ry, 2, rh, A + "30"),
-      r(rx + 6, ry + 6, rw - 12, 1, A + "1a"), r(rx + 6, ry + rh - 7, rw - 12, 1, A + "1a"), r(rx + 6, ry + 6, 1, rh - 12, A + "1a"), r(rx + rw - 7, ry + 6, 1, rh - 12, A + "1a"));
-  }
   L.push(r(0, yH, 4, H - yH, "#0d0f1a"), r(W - 4, yH, 4, H - yH, "#0d0f1a"), r(0, H - 4, W, 4, "#0d0f1a"));
 
   return div().absolute().left(0).top(0).w(W).h(H).overflow_hidden().children(L);

@@ -1,6 +1,6 @@
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex, ScrollHandle } from "gpui-base";
-import { spaces, panes, run, openOverlay, theme, window, shared, layout, settings, nextCommand } from "herdr";
+import { spaces, panes, run, openOverlay, theme, window, shared, layout, settings } from "herdr";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -28,38 +28,18 @@ function label(tab, lead) {
 }
 
 const MONO = "JetBrains Mono";
-// Local addition: the programs with a button beside LAZYGIT; each opens in a float over the
-// window (mods/company-float), also as the command "company-tabs.open-<app>".
-// scope "folder": one per project, started in the focused pane's repo; "global": one, in the
-// home folder. keep: stays running while its float is hidden.
-const FLOATS = [
-  { app: "btop", label: "BTOP", argv: ["btop"], scope: "global", keep: false },
-  { app: "nvim", label: "NVIM", argv: ["nvim"], scope: "folder", keep: true },
-  { app: "devtop", label: "DEVTOP", argv: ["~/devstack/bin/devtop"], scope: "global", keep: false },
-];
-const openFloat = (f) => openOverlay({ mod: "company-float", kind: "window", frame: "none", width: 1, height: 1, props: f });
 // A notched rectangle, drawn as two overlapping blocks with 2px cut corners. Insets are
 // [left, right, top, bottom] from the container, so a shape can sit inside another.
-// Local edit: rounded instead of pixel-notched corners. A box's fill sits 2px inside its frame, so it gets 2px less radius.
-const ROUND = 12;
 const notch = (c, [l, r, t, b]) => [
-  div().absolute().left(l).right(r).top(t).bottom(b).rounded(r === 4 ? ROUND - 2 : ROUND).bg(c),
+  div().absolute().left(l + 2).right(r + 2).top(t).bottom(b).bg(c),
+  div().absolute().left(l).right(r).top(t + 2).bottom(b + 2).bg(c),
 ];
 // A pixel box: a 2px frame and a hard 2px shadow, both notched. The container leaves the
 // shadow's 2px on its right and bottom; the content sits 2px inside the frame.
-// Local edit: the shadow drops straight down (not down-right), so a box is symmetric left to right.
 const box = (frame, fill, shadow) => [
-  div().absolute().left(0).right(0).top(2).bottom(0).rounded(ROUND).bg(shadow),
-  div().absolute().left(0).right(0).top(0).bottom(2).rounded(ROUND).bg(frame),
-  div().absolute().left(2).right(2).top(2).bottom(4).rounded(ROUND - 2).bg(fill),
-];
-// Local edit: the active tab's accent frame goes around the whole box, shadow included. With
-// box() the frame stops 2px short and the shadow hangs below it, so the tab reads as smaller
-// than its neighbours.
-const ringed = (frame, fill, shadow) => [
-  div().absolute().left(0).right(0).top(0).bottom(0).rounded(ROUND).bg(frame),
-  div().absolute().left(2).right(2).top(2).bottom(2).rounded(ROUND - 2).bg(shadow),
-  div().absolute().left(2).right(2).top(2).bottom(4).rounded(ROUND - 2).bg(fill),
+  ...notch(shadow, [2, 0, 2, 0]),
+  ...notch(frame, [0, 2, 0, 2]),
+  ...notch(fill, [2, 4, 2, 4]),
 ];
 // A pixel X: 2px steps down both diagonals, so it reads as a cross, not a plus.
 const cross = (c, size) => {
@@ -91,14 +71,6 @@ export default class Tabs extends View {
     try { this.panels = JSON.parse(localStorage.getItem("panels") ?? "{}"); } catch { this.panels = {}; }
     if (!this.panels || typeof this.panels !== "object" || Array.isArray(this.panels)) this.panels = {};
     this.swipe = { acc: 0, steps: 0, at: 0, last: 0 };
-    // Local addition: "company-tabs.open-<app>" toggles a float from a key (keys.json) or `herdr-app do`.
-    cx.spawn(async () => {
-      for (;;) {
-        const c = await nextCommand();
-        const f = FLOATS.find((x) => c === `open-${x.app}`);
-        if (f) openFloat(f);
-      }
-    });
   }
 
   // One tab per wheel notch. A touchpad or smooth-scrolling mouse sends many
@@ -222,7 +194,7 @@ export default class Tabs extends View {
     }
     const stop = (_e, cx) => cx.stop_propagation();
     const button = (id, glyph, action) => div().id(id).relative().size(28).flex_none().flex().items_center().justify_center()
-      .pb(2).children(box(t.raised, t.chrome, t.surface)).font_family(MONO).font_bold().text_size(11).text_color(t.muted)
+      .children(box(t.raised, t.chrome, t.surface)).font_family(MONO).font_bold().text_size(11).text_color(t.muted)
       .hover(s => s.text_color(t.foreground))
       .on_mouse_down("left", stop).on_click(action).child(glyph === "+" ? plus(t.accent) : glyph);
     const item = (c, i) => {
@@ -230,9 +202,8 @@ export default class Tabs extends View {
       const program = lead?.program;
       const name = label(c, lead);
       const dragged = d?.moved && d.id === c.id;
-      return h_flex().id(`tab-${c.id}`).relative().left(dragged ? 0 : shift(c, i) / z).h(28).px(10).pt(2).pb(4).gap(7).items_center().flex_none()
-        // Local edit: the active tab gets an accent frame (around its shadow too) instead of the old 2px underline.
-        .children(c.active ? ringed(t.accent, t.raised, t.surface) : box(t.raised, t.chrome, t.surface))
+      return h_flex().id(`tab-${c.id}`).relative().left(dragged ? 0 : shift(c, i) / z).h(32).pl(9).pr(11).pt(4).pb(6).gap(7).items_center().flex_none()
+        .children([...box(c.active ? t.muted : t.raised, c.active ? t.raised : t.chrome, t.surface), ...(c.active ? [div().absolute().left(8).right(10).bottom(4).h(2).bg(t.accent)] : [])])
         // A rename or status dot on this or an earlier tab can push the active one out.
         .on_size_change((size, cx) => { this.widths[c.id] = size.width; if (i <= active) { this.scroll.scroll_to_item(active); cx.notify(); } })
         .when(d?.moved ? !dragged : this.settle?.id === c.id, el => el.transition("left", { duration: 180, easing: "ease-out" }))
@@ -253,7 +224,7 @@ export default class Tabs extends View {
     // Old saved rails and a dragged-narrow sidebar can be smaller than the window buttons.
     const lightsPadding = w?.platform === "macos" && w.titlebar === "none" && !w.fullscreen && root?.traffic_lights
       ? Math.max(10, (root.traffic_lights[0] + 64) / settings().zoom - (sidebar?.hidden ? 0 : sidebar?.size?.px ?? 0))
-      : 8;
+      : 10;
     const panel = find(root, "panel"), body = find(root, "panel-body");
     const enabled = shared("workspace.panels") ?? ["files", "changes"];
     this.syncPanel(space, panel, body, enabled);
@@ -269,32 +240,21 @@ export default class Tabs extends View {
         })
         .child(text.toUpperCase());
     };
-    const launcher = (id, text, open) => h_flex().id(`open-${id}`).relative().h(28).px(10).pt(2).pb(4).flex_none().items_center()
-      .children(box(t.raised, t.chrome, t.surface))
-      .font_family(MONO).font_bold().text_size(10).text_color(t.muted).hover(s => s.text_color(t.foreground))
-      .on_mouse_down("left", stop)
-      .on_click(open)
-      .child(text);
-    return h_flex().size_full().min_w(0).pt(8).pr(8).pl(lightsPadding).gap(3).items_start()
+    return h_flex().size_full().min_w(0).px(10).pl(lightsPadding).gap(3).items_center().bg(t.chrome).border_b(1).border_color(t.surface)
       .on_window_mouse_move((e, cx) => this.dragMove(e, cx))
       .on_window_mouse_up("left", (_e, cx) => this.dragEnd(cx))
       .on_scroll_wheel(e => this.wheel(e))
-      .child(h_flex().id("tab-scroll").flex_1().min_w(0).h_full().items_start().gap(3).overflow_x_scrollbar().track_scroll(this.scroll)
+      .child(h_flex().id("tab-scroll").flex_1().min_w(0).h_full().items_center().gap(3).overflow_x_scrollbar().track_scroll(this.scroll)
         .on_size_change((_size, cx) => { if (active >= 0) { this.scroll.scroll_to_item(active); cx.notify(); } })
         .relative()
         // No z-index here: the held tab leaves a gap in its slot and is drawn last, so it rides over the others.
-        .children(shown.map((c, i) => d?.moved && c.id === d.id ? div().flex_none().w((this.widths[c.id] ?? 0) / z).h(28) : item(c, i)))
-        // Local edit: the + sits right after the last tab instead of at the far right.
-        .child(button("tab-new", "+", () => openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })))
+        .children(shown.map((c, i) => d?.moved && c.id === d.id ? div().flex_none().w((this.widths[c.id] ?? 0) / z).h(32) : item(c, i)))
         .when(Boolean(d?.moved && shown[d.i]?.id === d.id), el => el.child(div().absolute().top(0).bottom(0)
           .left((d.ids.slice(0, d.i).reduce((a, id) => a + (this.widths[id] ?? 0) + 3 * z, 0) + d.dx) / z)
-          .flex().items_start().child(item(shown[d.i], d.i)))))
+          .flex().items_center().child(item(shown[d.i], d.i)))))
+      .child(button("tab-new", "+", () => openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })))
       .when(enabled.includes("files"), el => el.child(panelButton("files", "Files")))
       .when(enabled.includes("changes"), el => el.child(panelButton("changes", "Changes")))
-      // Local addition: opens (or closes) the lazygit float, same as ctrl-shift-u.
-      .child(launcher("lazygit", "LAZYGIT", () => run("mod.open", { name: "lazygit" })))
-      // Local addition: more programs in a float (mods/company-float), one button each.
-      .children(FLOATS.map((f) => launcher(f.app, f.label, () => openFloat(f))))
       .when(w?.buttons, el => el.child(button("minimize", w.platform === "windows" ? svg("mods/company-tabs/win-min.svg").size(14) : "−", () => run("window.minimize")))
         .child(button("maximize", w.platform === "windows" ? svg(`mods/company-tabs/${w.maximized ? "win-restore" : "win-max"}.svg`).size(14) : "□", () => run("window.maximize")))
         .child(button("close-window", w.platform === "windows" ? svg("mods/company-tabs/win-close.svg").size(14) : svg("mods/company-pane/close.svg").size(13), () => run("window.close"))));

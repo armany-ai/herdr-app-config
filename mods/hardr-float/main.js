@@ -1,5 +1,5 @@
 // A terminal program in a float over the window, toggled like the lazygit float.
-// Opened by the tab bar's buttons (mods/company-tabs) as a 1px runner window with props:
+// Opened by the tab bar's buttons (mods/hardr-tabs) as a 1px runner window with props:
 //   { app: "btop", argv: ["btop"], scope: "global" | "folder", keep: false }
 // scope "folder": one copy per project (the focused pane's repo, else its folder), on the
 // space's machine. scope "global": one copy, on this computer, started in the home folder.
@@ -8,7 +8,7 @@
 import { View, div } from "gpui-kit";
 import { exec, hc, home, appHome, focused, spaces, panes, layout, theme, settings, run, openOverlay, closeOverlay, notify, props } from "herdr";
 
-const MOD = "company-float";
+const MOD = "hardr-float";
 const MEMORY = "__company_float_v1";
 const LEASE_MS = 15000;
 
@@ -136,8 +136,8 @@ const SHARE = 0.9;   // the float's share of the window, each way
 const BACKDROP = String.raw`
 dir=$1 name=$2 flat=$3 share=$4 radius=$5 units=$6
 mkdir -p "$dir" || exit 1
-rm -f "$dir"/company-float-*.png
-shot="$dir/.company-float-shot.png"
+rm -f "$dir"/hardr-float-*.png
+shot="$dir/.hardr-float-shot.png"
 herdr-app shot "$shot" >/dev/null || exit 1
 set -- $(magick identify -format '%w %h' "$shot")
 cw=$(($1 * share / 1000)) ch=$(($2 * share / 1000))   # the part under the float
@@ -159,7 +159,7 @@ async function backdrop(look, cx) {
   const mem = memory();
   for (let i = 0; i < 10 && !mem.window; i++) await cx.sleep(15);
   const units = mem.window ? Math.round(SHARE * mem.window.width / (settings().zoom || 1)) : 0;
-  const name = `company-float-${Date.now()}.png`;
+  const name = `hardr-float-${Date.now()}.png`;
   try {
     const made = await exec("sh", ["-c", BACKDROP, "sh", `${appHome()}/backgrounds`, name, look.body,
       String(Math.round(SHARE * 1000)), String(Math.round(look.radius)), String(units)], { timeout: 5000 });

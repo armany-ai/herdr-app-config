@@ -4,10 +4,9 @@ import { theme, run, props, window, shared, setShared, updates, layout, notify }
 
 const MONO = "JetBrains Mono";
 
-// Local edit: rounded instead of pixel-notched corners. A box's fill sits 2px inside its frame, so it gets 2px less radius.
-const ROUND = 12;
 const notch = (c, [l, r, t, b]) => [
-  div().absolute().left(l).right(r).top(t).bottom(b).rounded(r === 4 ? ROUND - 2 : ROUND).bg(c),
+  div().absolute().left(l + 2).right(r + 2).top(t).bottom(b).bg(c),
+  div().absolute().left(l).right(r).top(t + 2).bottom(b + 2).bg(c),
 ];
 
 const box = (frame, fill, shadow) => [
@@ -25,8 +24,6 @@ function find(node, id) {
   return null;
 }
 
-// Inner corner = the sidebar's radius minus its border, so the background follows the curve (synced from KWin by kde-sync.py).
-const innerRadius = () => { const n = find(layout(), "sidebar"); return Math.max(0, (n?.radius ?? 20) - (n?.border?.width ?? 0)); };
 const narrow = () => (find(layout(), "sidebar")?.size?.px ?? Infinity) < 160;
 
 function toggleSidebar() {
@@ -56,14 +53,14 @@ export default class WorkspaceChrome extends View {
         .child(svg(iconPath).size(15).flex_none())
         .when(!collapsed, el => el.child(label.toUpperCase()));
       const ready = div().size(6).bg(t.accent);
-      return v_flex().size_full().bg(t.chrome).rounded_b(innerRadius()).border_t(1).border_color(t.surface).px(collapsed ? 6 : 8).pt(4).pb(4).gap(3)
+      return v_flex().size_full().bg(t.chrome).border_t(1).border_color(t.surface).px(collapsed ? 6 : 8).pt(4).pb(4).gap(3)
         .when(collapsed, el => el.items_center())
         .child(row("settings", "mods/company-brand/settings.svg", "Settings", () => run("app.settings"))
           .when(Boolean(updates().app.ready), el => el.child(collapsed ? ready.absolute().top(3).right(4) : ready)))
         .child(row("machine", "mods/company-brand/plus.svg", "Add machine", () => run("mod.open", { name: "machine-add" })));
     }
     const logo = image("mods/company-brand/logo.png").size(34).flex_none();
-    return h_flex().size_full().bg(t.chrome).rounded_t(innerRadius()).pl(collapsed ? 6 : 14).pr(10).gap(4).items_center().text_size(13.5)
+    return h_flex().size_full().bg(t.chrome).pl(collapsed ? 6 : 14).pr(10).gap(4).items_center().text_size(13.5)
       .when(window()?.platform === "macos" && !window()?.fullscreen && !collapsed, el => el.pl(76))
       .when(!collapsed, el => el.child(h_flex().flex_1().gap(9).items_center().cursor_pointer()
         .tooltip("Pixel HQ - Click to test pixel notification")

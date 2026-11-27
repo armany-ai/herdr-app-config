@@ -1,17 +1,6 @@
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { spaces, panes, focused, agents, theme, run, window, keys, setBadge, openOverlay, shared, setShared, appHome, exec, checking, settings, readTextFile, writeTextFile } from "herdr";
-// Pastel status colors are tuned for dark glass. Under a light theme (dark text) they darken
-// so labels stay readable; lightTheme() is how a mod tells which look is showing.
-const lightTheme = (t) => {
-  const f = t?.foreground ?? "";
-  if (!/^#[0-9a-f]{6}/i.test(f)) return false;
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(f.slice(i, i + 2), 16));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
-};
-const ink = (t, hex) => (lightTheme(t) && /^#[0-9a-f]{6}$/i.test(hex)
-  ? "#" + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.55).toString(16).padStart(2, "0")).join("")
-  : hex);
 
 const MONO = "JetBrains Mono, Menlo, monospace";
 
@@ -107,10 +96,9 @@ function formatTime(seconds) {
   return `${m.toString().padStart(2, "0")}:${rem.toString().padStart(2, "0")}`;
 }
 
-// Local edit: rounded instead of pixel-notched corners. A box's fill sits 2px inside its frame, so it gets 2px less radius.
-const ROUND = 12;
 const notch = (c, [l, r, t, b]) => [
-  div().absolute().left(l).right(r).top(t).bottom(b).rounded(r === 4 ? ROUND - 2 : ROUND).bg(c),
+  div().absolute().left(l + 2).right(r + 2).top(t).bottom(b).bg(c),
+  div().absolute().left(l).right(r).top(t + 2).bottom(b + 2).bg(c),
 ];
 const box = (frame, fill, shadow) => [
   ...notch(shadow, [2, 0, 2, 0]),
@@ -226,8 +214,8 @@ export default class WorkspaceStatus extends View {
     }
     const label = (icon, text) => h_flex().gap(6).items_center().child(svg(`mods/company-status/${icon}.svg`).size(13)).child(text.toUpperCase());
     const pill = (color, text) => h_flex().gap(6).items_center().child(div().size(6).bg(color)).child(text.toUpperCase());
-    return h_flex().size_full().px(8).gap(14).items_center().font_family(MONO).text_size(11).text_color(t.muted)
-      .child(div().font_bold().text_size(11).text_color(ink(t, "#b4befe")).child("PIXEL HQ"))
+    return h_flex().size_full().px(14).gap(14).items_center().bg(t.chrome).border_t(1).border_color(t.surface).font_family(MONO).text_size(11).text_color(t.muted)
+      .child(div().font_bold().text_size(11).text_color("#b4befe").child("PIXEL HQ"))
       .child(label(space?.machine ? "server" : "monitor", space?.machine ?? "This computer"))
       .when(Boolean(currentBranch), el => el.child(label("branch", currentBranch)))
       .child(div().text_color(t.dim).child(`${list.length} ON THE TEAM`))
@@ -424,13 +412,6 @@ export default class WorkspaceStatus extends View {
           .tooltip("Open Floor Switcher")
           .on_click(() => run("mod.open", { name: "company-switcher" }))
           .child(this.switcherHint().toUpperCase())
-      )
-      .child(
-        chip(h_flex(), t)
-          .id("btn-look")
-          .tooltip("Appearance, transparency and blur")
-          .on_click(() => openOverlay({ mod: "company-look", kind: "popup", frame: "none", width: 280, height: 284 }))
-          .child("LOOK")
       )
       .child(
         chip(h_flex(), t)

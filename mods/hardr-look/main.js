@@ -1,6 +1,6 @@
-// Look: the status bar's popover for Pixel HQ's appearance (dark, light, or following the
+// Look: the status bar's popover for Hardr's appearance (dark, light, or following the
 // system's Kvantum theme), how see-through the window is, and how blurred what is behind it is.
-// It owns no colors: it writes the choices to pixel-hq-look.json and runs kde-sync.py,
+// It owns no colors: it writes the choices to hardr-look.json and runs kde-sync.py,
 // which rewrites the layout; the script's "look: {...}" line says what is showing.
 // Blur is the one thing it changes outside Herdr: the strength is KWin's own Blur effect
 // setting (kwinrc), shared by every blurred window. 0 only turns this window's blur off.
@@ -10,7 +10,7 @@ import { theme, exec, appHome, readTextFile, writeTextFile, checking, nextComman
 
 const MONO = "JetBrains Mono";
 const MODES = [["dark", "Dark"], ["light", "Light"], ["system", "System"]];
-const prefsFile = () => `${appHome()}/pixel-hq-look.json`;
+const prefsFile = () => `${appHome()}/hardr-look.json`;
 
 export default class Look extends View {
   init(_props, cx) {
@@ -32,12 +32,12 @@ export default class Look extends View {
     });
     if (checking()) return;
     this.save({}, cx);    // nothing to change: runs the script once to learn what is showing
-    // company-look.dark / .light / .system / .blur-<0..15>, from a key or `herdr-app do`, while this is open.
+    // hardr-look.dark / .light / .system / .blur-<0..15>, from a key or `herdr-app do`, while this is open.
     cx.spawn(async (cx) => {
       for (;;) {
         const command = String(await nextCommand()).split(/[.:]/).pop();
         if (MODES.some(([id]) => id === command)) { this.mode = command; cx.notify(); this.save({ mode: command }, cx); }
-        const blur = /^blur-(\d+)$/.exec(command);  // company-look.blur-0 (off) .. blur-15
+        const blur = /^blur-(\d+)$/.exec(command);  // hardr-look.blur-0 (off) .. blur-15
         if (blur) {
           const n = Math.min(15, Number(blur[1]));
           this.blur = n; this.blurSlider.set_value(n); cx.notify();

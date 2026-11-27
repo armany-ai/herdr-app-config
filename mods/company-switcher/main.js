@@ -7,10 +7,9 @@ import { spaces, agents, run, theme, props, closeOverlay, nextCommand } from "he
 
 const MONO = "JetBrains Mono, Menlo, monospace";
 
-// Local edit: rounded instead of pixel-notched corners. A box's fill sits 2px inside its frame, so it gets 2px less radius.
-const ROUND = 12;
 const notch = (c, [l, r, t, b]) => [
-  div().absolute().left(l).right(r).top(t).bottom(b).rounded(r === 4 ? ROUND - 2 : ROUND).bg(c),
+  div().absolute().left(l + 2).right(r + 2).top(t).bottom(b).bg(c),
+  div().absolute().left(l).right(r).top(t + 2).bottom(b + 2).bg(c),
 ];
 const box = (frame, fill, shadow) => [
   ...notch(shadow, [2, 0, 2, 0]),

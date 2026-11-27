@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Sync KDE Plasma's accent color into the Pixel HQ layout of the Herdr app.
+"""Sync KDE Plasma's accent color into the Hardr layout of the Herdr app.
 
 Reads ~/.config/kdeglobals ([General] AccentColor, which Plasma updates when the
 accent follows the wallpaper) and writes it into:
-  - layouts/pixel-hq-glass.json and/or layouts/pixel-hq.json (whichever exist):
+  - layouts/hardr.json:
     colors.accent, the focused-pane border, the sidebar's rim of light, the warm
     corner of the background gradient, the glass sheen of the sidebar and the
     panes, and the sidebar and pane corner radius from KWin (see window_radius)
-  - themes/pixel-hq.json and themes/pixel-hq-light.json: the terminal cursor
+  - themes/hardr.json and themes/hardr-light.json: the terminal cursor
 Under a light Kvantum theme the layout turns light: light cards and panel colors,
-and the layout's theme set to pixel-hq-light (dark text); a dark one sets pixel-hq.
-The company-pane badges, the company-spaces train line and the company-agents
-office read colors.accent; company-brand and company-pane follow the radius.
+and the layout's theme set to hardr-light (dark text); a dark one sets hardr.
+The hardr-pane badges, the hardr-spaces train line and the hardr-agents
+office read colors.accent; hardr-brand and hardr-pane follow the radius.
 
-The status bar's Look popover (mods/company-look) can override two things, kept in
-pixel-hq-look.json: the appearance (dark or light instead of following Kvantum) and
+The status bar's Look popover (mods/hardr-look) can override two things, kept in
+hardr-look.json: the appearance (dark or light instead of following Kvantum) and
 how see-through the window is.
 
 Only acts in a KDE Plasma session (see plasma_session); anywhere else it exits
@@ -30,13 +30,13 @@ import sys
 HOME = os.path.expanduser("~")
 KDEGLOBALS = os.path.join(HOME, ".config/kdeglobals")
 APP = os.environ.get("HERDR_APP_HOME", os.path.join(HOME, ".config/herdr-app"))
-LAYOUTS = [os.path.join(APP, f"layouts/{n}.json") for n in ("pixel-hq-glass", "pixel-hq")]
+LAYOUTS = [os.path.join(APP, "layouts/hardr.json")]
 # The terminal themes: the dark one, and the light one shown under a light Kvantum theme.
-THEME_DARK, THEME_LIGHT = "pixel-hq", "pixel-hq-light"
+THEME_DARK, THEME_LIGHT = "hardr", "hardr-light"
 THEMES = [os.path.join(APP, f"themes/{n}.json") for n in (THEME_DARK, THEME_LIGHT)]
-# What the person picks in the status bar's Look popover (mods/company-look writes it):
+# What the person picks in the status bar's Look popover (mods/hardr-look writes it):
 # {"mode": "system" | "dark" | "light", "transparency": 0..95 or null, "blur": true | false}
-LOOK = os.path.join(APP, "pixel-hq-look.json")
+LOOK = os.path.join(APP, "hardr-look.json")
 INK, PAPER = (0x2e, 0x34, 0x40), (0xec, 0xef, 0xf4)  # stand-ins when a theme has no usable color
 BASE_BG = (0x11, 0x11, 0x1B)  # the layout's navy canvas, used when Kvantum isn't the widget style
 KVANTUM = os.path.join(HOME, ".config/Kvantum")
@@ -315,7 +315,7 @@ def main():
     light = False
     if kv:
         kv_rgb, kv_alpha, kv_theme, kv_text = kv
-        # A light Kvantum theme makes Pixel HQ light too: light cards, the light terminal theme.
+        # A light Kvantum theme makes Hardr light too: light cards, the light terminal theme.
         light = luminance(kv_rgb) > 0.2
     if mode != "system" and (mode == "light") != light:
         # The person chose the other appearance. A theme's text color is, near enough, the
@@ -392,7 +392,7 @@ def main():
     bg["theme"] = THEME_LIGHT if light and os.path.exists(THEMES[1]) else THEME_DARK
     layouts = [p for p in LAYOUTS if os.path.exists(p)]
     if not layouts:
-        print("kde-sync: no Pixel HQ layout in " + APP, file=sys.stderr)
+        print("kde-sync: no Hardr layout in " + APP, file=sys.stderr)
         return 1
     changed = [p for p in layouts if write_if_changed(p, apply_layout(p, acc, bg, radius, blur))]
 

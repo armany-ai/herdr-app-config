@@ -1,17 +1,6 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { theme, run, shared, setShared, closeOverlay, checking, appHome, exec, window, props, readTextFile, writeTextFile, settings } from "herdr";
-// This mod is a dark room whatever the theme shows: under a light theme (dark text) it keeps
-// the dark look's text and panel colors, so its fixed dark boxes and pixel art stay readable.
-const darkRoom = (t) => {
-  const f = t?.foreground ?? "";
-  if (!/^#[0-9a-f]{6}/i.test(f)) return t;
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(f.slice(i, i + 2), 16));
-  if (0.2126 * r + 0.7152 * g + 0.0722 * b >= 128) return t;
-  return { ...t, foreground: "#eceff4", muted: "#d8dee9", dim: "#7f849c", chrome: "#1b2130d9", canvas: "#1b2130d9",
-    surface: "#262637", raised: "#313244", popover: "#2e3440", border: "#ffffff14", hover: "#ffffff10", selected: "#ffffff14",
-    working: "#81a1c1", blocked: "#ebcb8b", done: "#a3be8c", idle: "#616e88" };
-};
 
 const MONO = "JetBrains Mono, Menlo, monospace";
 const VOLUME_KEY = "pixel-hq.music.volume";
@@ -1026,7 +1015,7 @@ export default class CompanyMusic extends View {
   }
 
   render() {
-    const t = darkRoom(theme());
+    const t = theme();
     if (this.showGuide && (!this.depStatus || !this.depStatus.has_player)) {
       return this.renderSetupGuide(t);
     }

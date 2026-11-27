@@ -68,7 +68,7 @@
     "ctrl-alt-k": "agent.prev",
     "ctrl-alt-a": "mod.open:legacy-key-attention",
     "ctrl-shift-u": "mod.open:lazygit",
-    "ctrl-shift-m": "mod.open:company-music"
+    "ctrl-shift-m": "mod.open:hardr-music"
   },
   "terminal": {
     "ctrl-backspace": "send:\u0017",
@@ -81,7 +81,7 @@
     "ctrl-insert": "terminal.copy",
     "shift-insert": "terminal.paste",
     "ctrl-shift-u": "mod.open:lazygit",
-    "ctrl-shift-m": "mod.open:company-music"
+    "ctrl-shift-m": "mod.open:hardr-music"
   },
   "layout:persona5": {
     "cmd-w": "p5-tabs.close-pane",
